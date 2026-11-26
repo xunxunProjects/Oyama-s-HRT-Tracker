@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { baseStorage, seedStorage } from './helpers';
+import { baseStorage, nowHours, seedStorage } from './helpers';
 
 const emptyHydration = JSON.stringify({
     water: [],
@@ -101,5 +101,31 @@ test.describe('hydration beta home card', () => {
 
         await expect(page.getByRole('heading', { name: 'Hydration Beta' })).toBeHidden();
         await expect(page.getByRole('button', { name: 'Add a cup (500 mL)' })).toBeHidden();
+    });
+});
+
+test.describe('hydration beta chart', () => {
+    test('draws the adjusted dashed curve and the difference panel', async ({ page, context }) => {
+        const h = nowHours();
+        await seedStorage(
+            context,
+            baseStorage({
+                'hrt-physiology-beta': 'true',
+                'hrt-events': JSON.stringify([
+                    { id: 'hydration-chart-dose', route: 'oral', ester: 'E2', doseMG: 4, timeH: h - 48, extras: {} },
+                ]),
+                'hrt-hydration': JSON.stringify({
+                    water: [{ id: 'hydration-chart-cup', timeH: h - 2, cups: 2 }],
+                    urineColor: null,
+                    bodyFatPercent: null,
+                    alpha: 1,
+                }),
+            }),
+        );
+        await page.goto('/');
+
+        await expect(page.locator('svg path[stroke-dasharray="6 4"]').first()).toBeVisible();
+        await expect(page.getByText('Hydration-adjusted (Beta)').first()).toBeVisible();
+        await expect(page.getByText('Difference from main line')).toBeVisible();
     });
 });

@@ -171,3 +171,20 @@ export function hydrationDelta(values: number[], adjusted: number[]): number[] {
         return adjusted[i] - value;
     });
 }
+
+export interface HydrationDeltaSummary {
+    absolute: number;
+    percent: number;
+}
+
+export function hydrationDeltaSummary(values: number[], adjusted: number[]): HydrationDeltaSummary | null {
+    const deltas = hydrationDelta(values, adjusted);
+    if (!deltas.length) return null;
+
+    const last = deltas.length - 1;
+    const base = values[last];
+    return {
+        absolute: deltas[last],
+        percent: Number.isFinite(base) && base !== 0 ? (deltas[last] / base) * 100 : 0,
+    };
+}

@@ -18,6 +18,7 @@ import {
     CPA_MIN_NGML,
     isEstradiolEster,
     isUnmodelledDrug,
+    hydrationDeltaSummary,
 } from '../../logic';
 import { useHRTMode } from '../contexts/HRTModeContext';
 import { useElementSize } from '../hooks/useElementSize';
@@ -222,8 +223,8 @@ const cpaMeaningful = (v: number | null | undefined) => v != null && v >= CPA_MI
 // Linear read-off of a sampled series at an arbitrary time, so the edges of a
 // window can be valued exactly rather than by the nearest sample outside it.
 const valueAt = (
-    data: { t: number; p: number | null; s: number | null }[],
-    key: 'p' | 's',
+    data: { t: number; p: number | null; s: number | null; a?: number | null }[],
+    key: 'p' | 's' | 'a',
     time: number,
 ): number | null => {
     if (!data.length) return null;
@@ -396,17 +397,33 @@ const ResultChart = ({
     // Cyproterone is drawn as modelled, all the way down, so its curve never
     // breaks off as a dose washes out.
     const data = useMemo(() => {
-        type Pt = { t: number; p: number | null; s: number | null; f: boolean };
+        type Pt = { t: number; p: number | null; s: number | null; a: number | null; f: boolean };
         if (!sim || sim.timeH.length === 0) return [] as Pt[];
         const nowH = now / HOUR;
+        const adjusted = (src: SimulationResult, i: number, h: number): number | null => {
+            if (isTransmasc) {
+                const v = src.concNGdL_T_pv?.[i];
+                return v != null && Number.isFinite(v) ? v : null;
+            }
+            if (primaryIsCPA) return null;
+            const v = src.concPGmL_E2_pv?.[i];
+            return v != null && Number.isFinite(v) ? v * calibrationFn(h) : null;
+        };
         const point = (src: SimulationResult, i: number): Pt => {
             const h = src.timeH[i];
             const time = h * HOUR;
             const f = showAhead && h > nowH;
-            if (isTransmasc) return { t: time, p: src.concNGdL_T?.[i] ?? 0, s: null, f };
+            if (isTransmasc)
+                return { t: time, p: src.concNGdL_T?.[i] ?? 0, s: null, a: adjusted(src, i, h), f };
             const cpa = src.concPGmL_CPA[i] ?? 0;
-            if (primaryIsCPA) return { t: time, p: cpa, s: null, f };
-            return { t: time, p: src.concPGmL_E2[i] * calibrationFn(h), s: hasSecondary ? cpa : null, f };
+            if (primaryIsCPA) return { t: time, p: cpa, s: null, a: null, f };
+            return {
+                t: time,
+                p: src.concPGmL_E2[i] * calibrationFn(h),
+                s: hasSecondary ? cpa : null,
+                a: adjusted(src, i, h),
+                f,
+            };
         };
         const out: Pt[] = [];
         for (let i = 0; i < sim.timeH.length; i++) {
@@ -421,6 +438,28 @@ const ResultChart = ({
         }
         return out;
     }, [sim, showAhead, ahead, now, calibrationFn, isTransmasc, primaryIsCPA, hasSecondary]);
+
+    const hasAdjusted = data.some(d => d.a != null);
+    // The simulation grid carries on past "now". A cup logged today has fully
+    // washed out by the far end, so summarising the whole grid would always
+    // report zero. Read the delta at the latest sample at or before now.
+    const currentData = useMemo(() => {
+        if (!hasAdjusted) return [] as typeof data;
+        let last = data.length - 1;
+        while (last >= 0 && data[last].t > now) last--;
+        return last < 0 ? data : data.slice(0, last + 1);
+    }, [data, hasAdjusted, now]);
+    const hydrationSummary = useMemo(() => {
+        if (!currentData.length) return null;
+        return hydrationDeltaSummary(
+            currentData.map(d => d.p ?? 0),
+            currentData.map(d => d.a ?? d.p ?? 0),
+        );
+    }, [currentData]);
+    const showHydrationSummary =
+        !!hydrationSummary &&
+        (Math.abs(hydrationSummary.absolute) >= 0.05 || Math.abs(hydrationSummary.percent) >= 0.05);
+    const signedDelta = (v: number) => `${v < 0 ? '-' : '+'}${Math.abs(v).toFixed(1)}`;
 
     const fullMin = data.length ? data[0].t : now;
     const fullMax = data.length ? data[data.length - 1].t : now;
@@ -545,11 +584,13 @@ const ResultChart = ({
         };
         for (const time of [t0, t1]) {
             take('p', valueAt(data, 'p', time));
+            take('p', valueAt(data, 'a', time));
             take('s', valueAt(data, 's', time));
         }
         for (const d of data) {
             if (d.t < t0 || d.t > t1) continue;
             take('p', d.p);
+            take('p', d.a);
             take('s', d.s);
         }
         for (const l of allLabPoints) if (l.t >= t0 && l.t <= t1) take('p', l.v);
@@ -682,7 +723,7 @@ const ResultChart = ({
 
     // One series, either the run up to "now" or the run after it. The run
     // after starts from the last sample before, so the two meet at the line.
-    const linePath = (key: 'p' | 's', after: boolean) => {
+    const linePath = (key: 'p' | 's' | 'a', after: boolean) => {
         let d = '';
         let xs: number[] = [];
         let ys: number[] = [];
@@ -700,7 +741,7 @@ const ResultChart = ({
                 continue;
             }
             xs.push(X(pt.t));
-            ys.push(key === 'p' ? YP(val) : YS(val));
+            ys.push(key === 's' ? YS(val) : YP(val));
         }
         flush();
         return d;
@@ -964,6 +1005,18 @@ const ResultChart = ({
                       color: c.second,
                       weight: 1.5,
                       dash: isMono ? '2 5' : undefined,
+                  },
+              ]
+            : []),
+        ...(hasAdjusted
+            ? [
+                  {
+                      key: 'a',
+                      y: mT - 2 * ui,
+                      text: t('chart.hydration_adjusted'),
+                      color: 'var(--accent)',
+                      weight: 1.5,
+                      dash: '6 4',
                   },
               ]
             : []),
@@ -1257,6 +1310,29 @@ const ResultChart = ({
                                         strokeDasharray={isMono && primaryIsCPA ? '2 5' : AHEAD_DASH}
                                         opacity={AHEAD_OPACITY}
                                     />
+                                    {hasAdjusted && (
+                                        <>
+                                            <path
+                                                d={linePath('a', false)}
+                                                fill="none"
+                                                stroke="var(--accent)"
+                                                strokeWidth={1.75}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                                strokeDasharray="6 4"
+                                            />
+                                            <path
+                                                d={linePath('a', true)}
+                                                fill="none"
+                                                stroke="var(--accent)"
+                                                strokeWidth={1.75}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                                strokeDasharray="6 4"
+                                                opacity={AHEAD_OPACITY}
+                                            />
+                                        </>
+                                    )}
                                 </g>
 
                                 {/* Secondary curve (CPA), in the lower plot — kept quiet so E2 stays the focus; dotted in mono so the curves stay distinguishable */}
@@ -1499,7 +1575,7 @@ const ResultChart = ({
             {/* What the dashed part assumes, and the calibration factor, under
                 the dates. Each plot names its own line, so no legend sits
                 between the title and the curves. */}
-            {(showAhead || Math.abs(calFactor - 1) > 0.001) && (
+            {(showAhead || Math.abs(calFactor - 1) > 0.001 || showHydrationSummary) && (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-[var(--text-muted)]">
                     {showAhead && (
                         <span className="flex items-center gap-1.5">
@@ -1510,6 +1586,23 @@ const ResultChart = ({
                                 }}
                             />
                             {t(`chart.ahead_${aheadBasis}`)}
+                        </span>
+                    )}
+                    {showHydrationSummary && hydrationSummary && (
+                        <span className="flex flex-wrap items-center gap-x-1.5">
+                            <span
+                                className="w-3.5 h-[2px]"
+                                style={{
+                                    background:
+                                        'repeating-linear-gradient(90deg, var(--accent) 0, var(--accent) 6px, transparent 6px, transparent 10px)',
+                                }}
+                            />
+                            <span>{t('chart.hydration_adjusted')}</span>
+                            <span className="tabular-nums">
+                                {t('chart.hydration_delta')}: {signedDelta(hydrationSummary.absolute)}{' '}
+                                {primaryMeta.unit} ({signedDelta(hydrationSummary.percent)}%)
+                            </span>
+                            <span className="w-full">{t('hydration.note')}</span>
                         </span>
                     )}
                     {Math.abs(calFactor - 1) > 0.001 && (

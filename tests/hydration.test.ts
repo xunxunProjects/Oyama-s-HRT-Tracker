@@ -5,6 +5,7 @@ import {
     estimatePlasmaVolumeL,
     estimateTbwL,
     hydrationDelta,
+    hydrationDeltaSummary,
     plasmaVolumeRatio,
     urineColorOffset,
     type HydrationState,
@@ -128,5 +129,23 @@ describe('hydrationDelta', () => {
     it('returns an empty array when the series do not match', () => {
         expect(hydrationDelta([], [1])).toEqual([]);
         expect(hydrationDelta([1, 2], [1])).toEqual([]);
+    });
+});
+
+describe('hydrationDeltaSummary', () => {
+    it('summarises the latest delta as a value and a percentage', () => {
+        expect(hydrationDeltaSummary([100, 200], [100, 400])).toEqual({ absolute: 200, percent: 100 });
+    });
+
+    it('returns null when there is no comparable series', () => {
+        expect(hydrationDeltaSummary([], [1])).toBeNull();
+    });
+
+    it('treats a non-finite adjusted point as zero delta', () => {
+        expect(hydrationDeltaSummary([100], [Number.NaN])).toEqual({ absolute: 0, percent: 0 });
+    });
+
+    it('does not divide by a zero model value', () => {
+        expect(hydrationDeltaSummary([0], [10])).toEqual({ absolute: 10, percent: 0 });
     });
 });

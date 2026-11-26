@@ -21,6 +21,7 @@ export {
 } from './features/safety';
 
 export type {
+    HydrationDeltaSummary,
     HydrationParams,
     HydrationState,
     UrineColorLevel,
@@ -34,6 +35,7 @@ export {
     estimatePlasmaVolumeL,
     estimateTbwL,
     hydrationDelta,
+    hydrationDeltaSummary,
     plasmaVolumeRatio,
     urineColorOffset,
 } from './features/hydration';
