@@ -33,6 +33,9 @@ interface SettingsProps {
     birthYear: number | null;
     ageBeta: boolean;
     setAgeBeta: (v: boolean) => void;
+    physiologyBeta: boolean;
+    setPhysiologyBeta: (v: boolean) => void;
+    onNavigateToHydration: () => void;
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
@@ -169,6 +172,9 @@ const Settings: React.FC<SettingsProps> = ({
     birthYear,
     ageBeta,
     setAgeBeta,
+    physiologyBeta,
+    setPhysiologyBeta,
+    onNavigateToHydration,
     pkParams,
     onNavigateToPKParams,
     onNavigateToHRTMode,
@@ -333,6 +339,22 @@ const Settings: React.FC<SettingsProps> = ({
                     checked={safetyReminderEnabled}
                     onChange={setSafetyReminderEnabled}
                 />
+            </div>
+
+            <SectionHeading title={t('settings.section.physiology')} />
+            <div className={section}>
+                <SwitchRow
+                    label={t('settings.physiology_beta')}
+                    desc={t('settings.physiology_beta_desc')}
+                    checked={physiologyBeta}
+                    onChange={setPhysiologyBeta}
+                />
+                {physiologyBeta && (
+                    <NavRow
+                        label={t('settings.hydration')}
+                        onClick={() => navTo(onNavigateToHydration, 'general')}
+                    />
+                )}
             </div>
 
             {/* What's left on hand. */}

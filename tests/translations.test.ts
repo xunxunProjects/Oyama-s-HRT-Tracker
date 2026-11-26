@@ -78,6 +78,49 @@ describe('safety reminder copy', () => {
     }
 });
 
+describe('hydration beta copy', () => {
+    const locales = ['en', 'zh', 'zh-TW', 'yue', 'ja', 'ko', 'tr', 'ru', 'uk'] as const;
+    const keys = [
+        'settings.section.physiology',
+        'settings.physiology_beta',
+        'settings.physiology_beta_desc',
+        'settings.hydration',
+        'hydration.title',
+        'hydration.subtitle',
+        'hydration.weight',
+        'hydration.body_fat',
+        'hydration.alpha',
+        'hydration.alpha_desc',
+        'hydration.add_cup',
+        'hydration.cups',
+        'hydration.remove',
+        'hydration.urine_color',
+        'hydration.urine_level',
+        'hydration.note',
+        'hydration.empty',
+        'chart.hydration_adjusted',
+        'chart.hydration_delta',
+    ] as const;
+
+    for (const lang of locales) {
+        it(`${lang} has every hydration key`, () => {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            for (const key of keys) {
+                expect(Object.prototype.hasOwnProperty.call(pack, key), `${lang} missing ${key}`).toBe(true);
+                expect(pack[key]).toBeTruthy();
+            }
+        });
+    }
+
+    it('keeps the cup and level placeholders', () => {
+        for (const lang of locales) {
+            const pack = TRANSLATIONS[lang] as Record<string, string>;
+            expect(pack['hydration.cups']).toContain('{n}');
+            expect(pack['hydration.urine_level']).toContain('{level}');
+        }
+    });
+});
+
 describe('Russian and Ukrainian', () => {
     const en = TRANSLATIONS.en as Record<string, string>;
     const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();

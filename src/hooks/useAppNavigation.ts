@@ -39,6 +39,7 @@ export type ViewKey =
     | 'settings-appearance'
     | 'settings-weight'
     | 'settings-age'
+    | 'settings-hydration'
     | 'settings-export'
     | 'settings-import'
     | 'settings-transparency'
@@ -70,6 +71,7 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-appearance': 'settings',
     'settings-weight': 'settings',
     'settings-age': 'settings',
+    'settings-hydration': 'settings',
     'settings-export': 'settings',
     'settings-import': 'settings',
     'settings-transparency': 'settings',
@@ -138,6 +140,7 @@ const VIEW_ORDER: ViewKey[] = [
     'settings-appearance',
     'settings-weight',
     'settings-age',
+    'settings-hydration',
     'settings-export',
     'settings-import',
     'settings-model',

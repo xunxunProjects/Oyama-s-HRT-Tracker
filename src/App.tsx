@@ -66,6 +66,7 @@ import LanguageSettings from './pages/LanguageSettings';
 import AppearanceSettings from './pages/AppearanceSettings';
 import WeightSettings from './pages/WeightSettings';
 import AgeSettings from './pages/AgeSettings';
+import HydrationSettings from './pages/HydrationSettings';
 import ExportSettings from './pages/ExportSettings';
 import ImportSettings from './pages/ImportSettings';
 import TransparencySettings from './pages/TransparencySettings';
@@ -123,6 +124,14 @@ const AppContent = () => {
         setCalibrationHistoryMode,
         ageBeta,
         setAgeBeta,
+        physiologyBeta,
+        setPhysiologyBeta,
+        hydration,
+        addWater,
+        removeWater,
+        setUrineColor,
+        setBodyFatPercent,
+        setHydrationAlpha,
         modelSettings,
         calibration,
         currentLevel,
@@ -273,7 +282,8 @@ const AppContent = () => {
             (currentView === 'settings-milk-tea' ||
                 currentView === 'settings-cat-states' ||
                 currentView === 'settings-simulator')) ||
-        (!ageBeta && currentView === 'settings-age');
+        (!ageBeta && currentView === 'settings-age') ||
+        (!physiologyBeta && currentView === 'settings-hydration');
     useEffect(() => {
         if (pageGone) handleViewChange(tabForView(currentView));
     }, [pageGone, currentView, handleViewChange]);
@@ -1108,6 +1118,9 @@ const AppContent = () => {
                             birthYear={birthYear}
                             ageBeta={ageBeta}
                             setAgeBeta={setAgeBeta}
+                            physiologyBeta={physiologyBeta}
+                            setPhysiologyBeta={setPhysiologyBeta}
+                            onNavigateToHydration={() => handleViewChange('settings-hydration')}
                             pkParams={pkParams}
                             onNavigateToPKParams={() => handleViewChange('pk-params')}
                             onNavigateToPKDemos={() => handleViewChange('settings-pk-viz')}
@@ -1174,6 +1187,20 @@ const AppContent = () => {
                             birthYear={birthYear}
                             onSave={setBirthYear}
                             onBack={() => handleViewChange('settings')}
+                        />
+                    )}
+
+                    {currentView === 'settings-hydration' && physiologyBeta && (
+                        <HydrationSettings
+                            weight={weight}
+                            hydration={hydration}
+                            addWater={addWater}
+                            removeWater={removeWater}
+                            setUrineColor={setUrineColor}
+                            setBodyFatPercent={setBodyFatPercent}
+                            setHydrationAlpha={setHydrationAlpha}
+                            onBack={() => handleViewChange('settings')}
+                            t={t}
                         />
                     )}
 
