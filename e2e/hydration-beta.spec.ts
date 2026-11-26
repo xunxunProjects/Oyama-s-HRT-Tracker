@@ -62,3 +62,44 @@ test.describe('hydration beta settings', () => {
         await expect(page.getByRole('button', { name: /Hydration Beta.*Back/ })).toBeHidden();
     });
 });
+
+test.describe('hydration beta home card', () => {
+    test('shows the card, adds a cup, and keeps the count after reload', async ({ page, context }) => {
+        await seedStorage(
+            context,
+            baseStorage({
+                'hrt-physiology-beta': 'true',
+                'hrt-hydration': emptyHydration,
+            }),
+        );
+        await page.goto('/');
+
+        await expect(page.getByRole('heading', { name: 'Hydration Beta' })).toBeVisible();
+        await expect(page.getByText(/0 cups/)).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Add a cup (500 mL)' })).toBeVisible();
+
+        await page.getByRole('button', { name: 'Add a cup (500 mL)' }).click();
+
+        await expect(page.getByText(/1 cups/)).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Hydration Beta' })).toBeVisible();
+
+        await page.reload();
+
+        await expect(page.getByText(/1 cups/)).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Add a cup (500 mL)' })).toBeVisible();
+    });
+
+    test('hides the card when the beta is off', async ({ page, context }) => {
+        await seedStorage(
+            context,
+            baseStorage({
+                'hrt-physiology-beta': 'false',
+                'hrt-hydration': emptyHydration,
+            }),
+        );
+        await page.goto('/');
+
+        await expect(page.getByRole('heading', { name: 'Hydration Beta' })).toBeHidden();
+        await expect(page.getByRole('button', { name: 'Add a cup (500 mL)' })).toBeHidden();
+    });
+});

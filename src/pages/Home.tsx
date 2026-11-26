@@ -11,11 +11,13 @@ import {
     isT_LabUnit,
     CPA_MIN_NGML,
     SafetyAlert,
+    HydrationState,
 } from '../../logic';
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
 import SafetyAlertNotice from '../components/SafetyAlertNotice';
+import HydrationCard from '../components/HydrationCard';
 import AnimatedNumber from '../components/AnimatedNumber';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
@@ -75,6 +77,10 @@ interface HomeProps {
     safetyAlerts: SafetyAlert[];
     onOpenSafetySettings: () => void;
     safetyReminderEnabled: boolean;
+    physiologyBeta: boolean;
+    hydration: HydrationState;
+    addWater: (timeH: number, cups: number) => void;
+    onOpenHydrationSettings: () => void;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -112,6 +118,10 @@ const Home: React.FC<HomeProps> = ({
     safetyAlerts,
     onOpenSafetySettings,
     safetyReminderEnabled,
+    physiologyBeta,
+    hydration,
+    addWater,
+    onOpenHydrationSettings,
 }) => {
     const isDarkMode =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -152,6 +162,8 @@ const Home: React.FC<HomeProps> = ({
     // the quickest way to log that first dose.
     const hasReading = events.length > 0;
     const hasAdvisory = !!doseAdvisory || !!hormoneAdvisory;
+    const hydrationPvRatio =
+        physiologyBeta && simulation?.pvRatio?.length ? simulation.pvRatio[simulation.pvRatio.length - 1] : null;
 
     /** The latest dose of a plan item logged today (the device's calendar day), up to `atH`. */
     const latestToday = (item: PlanItem, atH: number): DoseEvent | null => {
@@ -798,6 +810,15 @@ const Home: React.FC<HomeProps> = ({
                             <ChevronRight size={15} />
                         </button>
                     </div>
+                )}
+                {physiologyBeta && (
+                    <HydrationCard
+                        hydration={hydration}
+                        pvRatio={hydrationPvRatio}
+                        addWater={addWater}
+                        onOpenSettings={onOpenHydrationSettings}
+                        t={t}
+                    />
                 )}
                 <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
             </main>

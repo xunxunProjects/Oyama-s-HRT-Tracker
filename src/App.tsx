@@ -995,6 +995,10 @@ const AppContent = () => {
                             safetyAlerts={safety.alerts}
                             onOpenSafetySettings={() => handleViewChange('settings')}
                             safetyReminderEnabled={safety.enabled}
+                            physiologyBeta={physiologyBeta}
+                            hydration={hydration}
+                            addWater={addWater}
+                            onOpenHydrationSettings={() => handleViewChange('settings-hydration')}
                         />
                     )}
 

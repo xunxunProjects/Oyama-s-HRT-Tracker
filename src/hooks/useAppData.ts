@@ -404,14 +404,22 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         setCurrentTime(new Date());
     }, [events]);
 
+    // The beta is an observation layer: pass the hydration state only when the
+    // user turned it on. Memoised so the simulation does not rerun on every
+    // unrelated render just because this options object was rebuilt.
+    const hydrationOptions = useMemo(
+        () => (physiologyBeta ? { hydration } : undefined),
+        [physiologyBeta, hydration],
+    );
+
     // Derived in the same render as the events it comes from. As an effect it
     // landed one render late, so every open of the Overview with data (and
     // every import) first drew the chart with doses but no curve, which fell
     // through to the chart's "no records" state for as long as the simulation
     // took to run.
     const simulation = useMemo<SimulationResult | null>(
-        () => (events.length > 0 ? runSimulation(events, weight, modelBirthYear) : null),
-        [events, weight, modelBirthYear],
+        () => (events.length > 0 ? runSimulation(events, weight, modelBirthYear, hydrationOptions) : null),
+        [events, weight, modelBirthYear, hydrationOptions],
     );
 
     // What the person is taking now: their plan when they have entered one,
@@ -439,9 +447,9 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
     const simulationAhead = useMemo<SimulationResult | null>(() => {
         if (!doses.length) return null;
         const fromH = Math.min(...doses.map(e => e.timeH)) - 120 * 24;
-        return runSimulation([...events.filter(e => e.timeH >= fromH), ...doses], weight, modelBirthYear);
+        return runSimulation([...events.filter(e => e.timeH >= fromH), ...doses], weight, modelBirthYear, hydrationOptions);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dosesKey, events, weight, modelBirthYear]);
+    }, [dosesKey, events, weight, modelBirthYear, hydrationOptions]);
 
     // --- Derived State ---
     // Self-learning calibration: fits a personal amplitude (+ clearance, for the
