@@ -94,6 +94,8 @@ Important product constraints:
 | `src/constants.ts`       | Shared UI constants.                                                                                                 |
 | `logic.ts`               | Pharmacokinetic model, dose/lab types, simulation, calibration, and model validation. Shared with tests.             |
 | `shbg.ts`                | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.     |
+| `src/domain/features/hydration.ts` | Pure optional plasma-volume beta: TBW/PV estimates, urine-color offsets, a two-compartment gut/plasma water model, `pvRatio`, and the `C_beta` observation-layer transform. Does not change clearance, dose, AUC, or the main concentration arrays. |
+| `src/utils/hydrationState.ts` | Local-only hydration log sanitization and namespaced storage for water events, urine color, body fat %, and alpha. |
 | `worker.ts`              | Worker entry: static assets, `/api/*` dispatch, auth, sessions, rate limits, D1/R2, and `scheduled()`.               |
 | `toolApi.ts`             | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                   |
 | `contentStore.ts`        | Content-row SQL shared by the website and tool APIs, including retention pruning.                                    |
@@ -147,7 +149,7 @@ Important product constraints:
 | Group                 | Files                                                                                                                                                                                                                      |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Core tracking         | `Home`, `History`, `Lab`, `Plan`, `Forecast`, `Supplies`                                                                                                                                                                   |
-| Settings              | `Settings`, `AppearanceSettings`, `LanguageSettings`, `HRTModeSettings`, `WeightSettings`, `AgeSettings`, `PKParams`, `ExportSettings`, `ImportSettings`, `TransparencySettings`, `Credits`, `CommunityVote`, `Disclaimer` |
+| Settings              | `Settings`, `AppearanceSettings`, `LanguageSettings`, `HRTModeSettings`, `WeightSettings`, `AgeSettings`, `HydrationSettings`, `PKParams`, `ExportSettings`, `ImportSettings`, `TransparencySettings`, `Credits`, `CommunityVote`, `Disclaimer` |
 | Account and security  | `Account`, `ChangePassword`, `DeleteAccount`, `EditProfile`, `EditAvatar`, `Sessions`, `TwoFactor`, `HrtSecurity`, `F2f`, `Admin`                                                                                          |
 | Public and onboarding | `PublicShare`, `Onboarding`                                                                                                                                                                                                |
 | Developer/easter egg  | `CatStates`, `MilkTeaEasterEgg` (dev mode only)                                                                                                                                                                            |
@@ -161,6 +163,13 @@ Important product constraints:
   shape, update `src/utils/backupState.ts`, `backupImport.ts`,
   `backupBundle.ts`, and `syncMerge.ts` together; old browser data and old
   backups must still load.
+- `physiologyBeta` is an opt-in model setting (default off) because it changes
+  what the chart draws: with hydration enabled, `runSimulation` may return
+  optional `pvRatio`, `concPGmL_E2_pv`, and `concNGdL_T_pv` observation-layer
+  arrays. Clearance, Vd, dose, `auc`, and the main concentration arrays are
+  never changed. The hydration log, urine color, body fat %, and alpha are
+  local-only in this beta; those keys are cleaned on sign-out but are not part
+  of backup or cloud sync.
 - `src/contexts/AuthContext.tsx` holds the session token and user. `src/services/apiClient.ts`
   attaches the Bearer token and turns non-2xx responses into `ApiError` with a
   stable `code`. A 401 emits `UNAUTHORIZED_EVENT` so the UI can sign out

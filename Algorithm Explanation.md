@@ -892,3 +892,76 @@ const constant = freeEstradiol(sim!, { shbg: 'constant' }); // SHBG 停在基线
 ```
 
 参数通过 `model`（`ShbgModel`：基线、半衰期、按途径的诱导）与 `binding`（`BindingParams`：K_S、K_A、位点数、白蛋白）传入，默认值为 `DEFAULT_SHBG_MODEL` 与 `DEFAULT_BINDING`。
+
+---
+
+## 21) 水合 / 血浆容量（Beta，默认关闭）
+
+这是一个**观察层**实验，不是新的清除机制。它只根据用户记录的喝水与尿色，在图表上多画一条“水合校正”虚线和与原曲线的差值；它不改变剂量、给药方案、清除率、分布容积、原曲线或 AUC。默认关闭；关闭时模拟结果里不会出现 `pvRatio`、`concPGmL_E2_pv`、`concNGdL_T_pv`，图表也不会显示虚线或水合卡片。
+
+### 21.1 输入与单位
+
+- 喝水：按杯记录，1 杯 = 500 mL = 0.5 L；同一时间的多杯合并。
+- 尿色：1（最浅）到 8（最深）级；只作为水合参考，不参与激素清除。
+- 体重：kg；参加既有 PK 模型，也用于估算体液。
+- 体脂率：可选，百分比；缺省时用固定体液比例。
+- α：稀释敏感度，0–1，默认 0.5。0 时虚线与主线重合；1 时按血浆容量变化完全缩放。
+
+喝水记录、尿色和体脂率在本 Beta 中只保存在本机，不进入云同步或备份。控制开关 `physiologyBeta` 属于模型设置，会随模型设置同步，因为它会改变图表输出。
+
+### 21.2 体液与基线血浆容量
+
+有体脂率时按去脂体重估算总体水（TBW）：
+
+$$TBW = BW \times (1 - BF/100) \times 0.73$$
+
+其中 `BF` 是体脂率；计算时把 `1 - BF/100` 限制在 0.1–1。没有体脂率时用回退比例：
+
+$$TBW = 0.6 \times BW$$
+
+基线血浆容量：
+
+$$PV_0 = 0.075 \times TBW$$
+
+尿色给基线加一个启发式偏移（`URINE_OFFSETS`）：1 级 +2%，2 级 +1%，3 级 0%，4 级 −1%，5 级 −2%，6 级 −4%，7 级 −6%，8 级 −8%。有效基线是 `PV_eff0 = PV0 × (1 + offset)`；分母仍用 `PV0`，因此没有喝水时尿色不会凭空改变曲线。
+
+### 21.3 双室水模型
+
+每次记录 `cups` 杯水，就把 `0.5 × cups` L 加进胃肠道室 `G`。在两个模拟时间点之间：
+
+$$\frac{dG}{dt} = -k_{abs}G$$
+
+$$\frac{dV}{dt} = k_{abs}G - k_{renal}V$$
+
+默认 `k_abs = 1.5 h⁻¹`、`k_renal = 0.7 h⁻¹`。代码用解析解推进，而不是忽略步长的欧拉近似；当两个速率相等时使用极限形式。落在 `(上一个时间点, 当前时间点]` 的喝水事件在当前点计入，同一时刻的杯数相加。
+
+血浆容量比例：
+
+$$pvRatio = \mathrm{clamp}\left(\frac{PV_{eff0} + V}{PV_0},\ 0.7,\ 1.5\right)$$
+
+尿色偏移可让无水基线略微低于或高于 1；喝入的水先抬高比例，随后被肾清除回到基线。0.7–1.5 的上下限防止极端记录产生荒谬的缩放。
+
+### 21.4 对显示浓度的作用
+
+$$C_{\beta}(t) = C_{model}(t) \times \left(\frac{1}{pvRatio(t)}\right)^{\alpha}$$
+
+E2 用 `concPGmL_E2_pv`，T 用 `concNGdL_T_pv`；CPA 不画校正线。E2 校正值在图上应用与主线相同的化验校准倍数，因此两者可以直接比较。这个缩放只作用于观察值：`auc`、`concPGmL_E2`、`concNGdL_T`、清除率、剂量和分布容积都不变，也不会反馈到后续 PK 计算。
+
+### 21.5 证据边界与局限
+
+- 静脉晶体液输注期间血浆扩容约为输注量的 50–60%，停止后 30 分钟内降到 15–20%（PMID 31863457），说明血浆容量变化可以稀释/浓缩血液成分；这些百分比不直接套用到口服喝水。脱水/低容量导致血液浓缩，并会改变甲状腺激素结合蛋白（PMID 17270596），支持方向，但不是 E2/T 的 PK 试验。
+- 尿色与水合状态相关但不够精确：系统综述 r = 0.40–0.93（PMID 32330109）；儿童 R² = 0.45（PMID 25905541）；孕哺期 r = 0.61–0.84（PMID 26572890）；老年人 AUC < 0.70（PMID 27225436）。维生素 B、药物、食物、血尿和胆红素都会干扰颜色（PMID 25977447）。单次尿色不适合单独判断水合状态（PMID 25386829）。
+- **没有直接人体证据表明喝水或排尿会改变血清 E2/T 的 PK；尿也不是 E2/T 的主要排泄通路。** 这里唯一能站住的解释是血浆容量稀释/浓缩，而它是小而短暂的观察层假设，不是化验结果，也不是用药建议。
+- `α`、`k_abs`、`k_renal`、尿色偏移和 TBW/PV 系数都是启发式、未做临床校准；体重和体脂率也只是群体估算，不能代表个人真实血浆容量。
+- 图表显示的差值只是 `C_beta - C_model`；它没有统计不确定性，也不应当被用来调整剂量。
+
+参考文献：
+
+- [Plasma volume kinetics of crystalloid infusion, 2020](https://pubmed.ncbi.nlm.nih.gov/31863457/)
+- [Dehydration, hemoconcentration and thyroid hormone binding, 2005](https://pubmed.ncbi.nlm.nih.gov/17270596/)
+- [Urine color and hydration: systematic review, 2020](https://pubmed.ncbi.nlm.nih.gov/32330109/)
+- [Urine color as hydration marker in children, 2015](https://pubmed.ncbi.nlm.nih.gov/25905541/)
+- [Urine color in pregnancy and lactation, 2016](https://pubmed.ncbi.nlm.nih.gov/26572890/)
+- [Urine color and hydration in older adults, 2016](https://pubmed.ncbi.nlm.nih.gov/27225436/)
+- [Urine color confounders, 2015](https://pubmed.ncbi.nlm.nih.gov/25977447/)
+- [Spot urine hydration assessment limitations, 2014](https://pubmed.ncbi.nlm.nih.gov/25386829/)
