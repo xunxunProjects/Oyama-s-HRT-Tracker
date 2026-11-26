@@ -159,11 +159,6 @@ const JournalStats = ({
         return d <= 0 ? t('stats.today') : d === 1 ? t('stats.yesterday') : fill(t('stats.days_ago'), { n: d });
     };
     const fmtMg = (n: number) => (n >= 100 ? String(Math.round(n)) : String(Math.round(n * 10) / 10));
-    const rangeWords: Record<Range, string> = {
-        '30': t('stats.in_30d'),
-        '365': t('stats.in_12m'),
-        all: t('stats.in_all'),
-    };
 
     return (
         <div className="md:pb-32">
@@ -201,14 +196,10 @@ const JournalStats = ({
                         <span className="font-display font-light text-[2.5rem] leading-none tracking-[-0.03em] tabular-nums text-[var(--text)]">
                             {doses.length}
                         </span>
-                        <span className={`text-sm ${muted}`}>{rangeWords[range]}</span>
+                        <span className={`text-sm ${muted}`}>{t('stats.times')}</span>
                     </p>
                     <div className="mt-4">
-                        <StackedBars
-                            buckets={buckets}
-                            names={k => medName(k as Ester, t)}
-                            idle={range === '30' ? t('stats.bar_day') : t('stats.bar_month')}
-                        />
+                        <StackedBars buckets={buckets} names={k => medName(k as Ester, t)} />
                     </div>
                 </section>
 
@@ -265,13 +256,10 @@ const JournalStats = ({
                                             {medName(k as Ester, t)}
                                         </span>
                                         <span className={`block text-xs ${muted} mt-0.5`}>
-                                            {fill(t('stats.row_line'), {
-                                                n:
-                                                    r.n === 1
-                                                        ? t('stats.one_dose')
-                                                        : fill(t('stats.n_doses'), { n: r.n }),
-                                                when: ago(r.last),
-                                            })}
+                                            {[
+                                                r.n === 1 ? t('stats.one_dose') : fill(t('stats.n_doses'), { n: r.n }),
+                                                ago(r.last),
+                                            ].join(' · ')}
                                         </span>
                                     </span>
                                     <span className={`text-sm tabular-nums ${on} shrink-0`}>

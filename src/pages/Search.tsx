@@ -40,7 +40,6 @@ export function KindList({ meds, onOpenKind }: { meds: Med[]; onOpenKind: (kind:
                 >
                     <span className="flex-1 min-w-0">
                         <span className="block text-sm font-medium">{t(`kind.${k}.many`)}</span>
-                        <span className="block text-xs text-[var(--text-muted)] mt-0.5">{t(`kind.${k}.blurb`)}</span>
                     </span>
                     <span className="text-xs text-[var(--text-muted)] tabular-nums">{counts.get(k)}</span>
                     <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)] opacity-70 rtl:-scale-x-100" />
@@ -118,7 +117,6 @@ const Search = ({ onOpenMed, onOpenKind }: { onOpenMed: (med: Med) => void; onOp
                         {hits.length === 0 ? (
                             <div className="py-8">
                                 <p className="text-sm font-semibold">{fill(t('search.none'), { q: q.trim() })}</p>
-                                <p className="text-sm text-[var(--text-muted)] mt-1">{t('search.none_hint')}</p>
                             </div>
                         ) : (
                             <>

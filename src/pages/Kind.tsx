@@ -30,7 +30,6 @@ const Kind = ({
                 onBack={onBack}
             />
             <div className={`${PAGE_COLUMN} pb-8 md:pb-32`}>
-                {known && <p className="text-sm text-[var(--text-muted)] mb-4">{t(`kind.${known}.blurb`)}</p>}
                 {list.length ? (
                     <div className="settings-section">
                         {list.map(m => (

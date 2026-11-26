@@ -121,9 +121,7 @@ export function DoseCurve({
                             {fill(t('med.at_after'), { when: when(readH), after: span(readH) })}
                         </p>
                     </>
-                ) : (
-                    <p className="text-[var(--text-muted)]">{t('med.curve_idle')}</p>
-                )}
+                ) : null}
             </div>
             <div ref={box} className="-mx-4 md:-mx-6" style={{ touchAction: 'pan-y' }} {...scrub.handlers}>
                 <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block select-none" aria-hidden="true">

@@ -68,7 +68,7 @@ export function StackedBars({
                         </p>
                     </>
                 ) : (
-                    <p className="text-[var(--text-muted)]">{idle ?? t('stats.tap_bar')}</p>
+                    (idle ?? null)
                 )}
             </div>
             <div

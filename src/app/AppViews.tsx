@@ -284,7 +284,6 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                     });
                                 }}
                                 onOpenJournal={() => handleViewChange('history-stats')}
-                                onOpenModel={() => handleViewChange('settings-model')}
                             />
                         )}
 

@@ -227,8 +227,8 @@ const JournalWeight = ({
                     <p className={`mt-2 text-sm ${muted}`}>
                         {change === null
                             ? log.length
-                                ? fill(t('weight.on'), { when: when(log[0].t) })
-                                : t('weight.from_settings')
+                                ? when(log[0].t)
+                                : null
                             : change === 0
                               ? t('weight.same')
                               : fill(change > 0 ? t('weight.up') : t('weight.down'), { n: Math.abs(change) })}
@@ -243,9 +243,7 @@ const JournalWeight = ({
                                     <p className="font-medium text-[var(--text)] tabular-nums">{`${near.kg.toFixed(1)} kg`}</p>
                                     <p className={`mt-0.5 ${muted}`}>{when(near.t)}</p>
                                 </>
-                            ) : (
-                                <p className={muted}>{t('weight.chart_idle')}</p>
-                            )}
+                            ) : null}
                         </div>
                         <div ref={box} className="-mx-4 md:-mx-6" style={{ touchAction: 'pan-y' }} {...scrub.handlers}>
                             <svg
@@ -319,7 +317,6 @@ const JournalWeight = ({
                         <div className="flex flex-col items-center text-center pt-6 pb-10">
                             <Doodle name="chart" size={4.5} />
                             <p className="mt-4 text-sm font-medium text-[var(--text)]">{t('weight.empty_title')}</p>
-                            <p className={`mt-1 text-sm ${muted} max-w-xs`}>{t('weight.empty_body')}</p>
                             <button type="button" className="btn-primary mt-5" onClick={() => setAdding(true)}>
                                 {t('weight.log')}
                             </button>

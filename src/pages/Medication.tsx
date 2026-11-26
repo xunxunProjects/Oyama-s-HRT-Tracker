@@ -114,7 +114,6 @@ const Medication = ({
     onBack,
     onLog,
     onOpenJournal,
-    onOpenModel,
 }: {
     id: string | undefined;
     weight: number;
@@ -125,7 +124,6 @@ const Medication = ({
     /** Opens the journal's form with this medicine and route already chosen. */
     onLog: (route: Route, ester: Ester, amount: number) => void;
     onOpenJournal: () => void;
-    onOpenModel: () => void;
 }) => {
     const { t } = useTranslation();
     const { mode, isTransmasc } = useHRTMode();
@@ -172,7 +170,6 @@ const Medication = ({
     const products = productsOf(med, t);
     const unit = isPatch ? 'µg/d' : 'mg';
     const logged = events.filter(e => e.ester === med.id).sort((a, b) => b.timeH - a.timeH);
-    const lastDays = logged.length ? Math.floor((Date.now() / 3600000 - logged[0].timeH) / 24) : null;
 
     // The rail: a band from the guide's medium step, ends either side of the
     // whole guide. The amount drags along it on a log scale.
@@ -209,34 +206,22 @@ const Medication = ({
                     <div className="flex items-center gap-4">
                         <Molecule id={med.id} fallback={med.routes[0] as DoodleName} size="lg" />
                         <div className="min-w-0">
-                            <p className="text-sm text-[var(--text)]">{t(`med.what.${med.id}`)}</p>
+                            <p className="text-sm text-[var(--text)]">{t(`kind.${med.kind}.one`)}</p>
                             {products.length > 0 && (
-                                <p className={`text-xs ${muted} mt-1`}>
-                                    {t('med.also_called')}
-                                    {products.join(t('list.sep'))}
-                                </p>
+                                <p className={`text-xs ${muted} mt-1`}>{products.join(t('list.sep'))}</p>
                             )}
                             {structure?.formula && (
-                                <p className="text-sm text-[var(--text)] mt-1">
+                                <a
+                                    href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.cid}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-1 block text-sm text-[var(--text)] no-underline"
+                                >
                                     <Formula of={structure.formula} />
                                     {structure.mass != null && (
-                                        <span className={`text-xs ${muted}`}>
-                                            {fill(t('med.g_mol'), { n: structure.mass })}
-                                        </span>
+                                        <span className={`text-xs ${muted}`}>{`, ${structure.mass} g/mol`}</span>
                                     )}
-                                </p>
-                            )}
-                            {structure && (
-                                <p className={`text-xs ${muted} mt-1`}>
-                                    <a
-                                        href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.cid}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-[var(--text-muted)]"
-                                    >
-                                        {t('med.from_pubchem')}
-                                    </a>
-                                </p>
+                                </a>
                             )}
                         </div>
                     </div>
@@ -245,27 +230,18 @@ const Medication = ({
                         <button
                             type="button"
                             onClick={onOpenJournal}
-                            className={`mt-4 flex w-full items-start gap-2 text-start text-sm leading-relaxed ${muted} hover:text-[var(--text)]`}
+                            className={`mt-4 flex items-center gap-1 text-start text-sm tabular-nums ${muted} hover:text-[var(--text)]`}
                         >
-                            <span>
-                                {mine &&
-                                    fill(t('med.in_plan_line'), {
-                                        dose: `${formatGuideNumber(planAmount ?? 0)} ${unit}`,
-                                        freq: frequencyLabel(mine, t),
-                                    })}
-                                {mine && logged.length > 0 && ' '}
-                                {logged.length > 0 &&
-                                    fill(t('med.logged_line'), {
-                                        n: logged.length,
-                                        when:
-                                            lastDays === 0
-                                                ? t('stats.today')
-                                                : lastDays === 1
-                                                  ? t('stats.yesterday')
-                                                  : fill(t('stats.days_ago'), { n: lastDays ?? 0 }),
-                                    })}
-                            </span>
-                            <ChevronRight size={16} className="mt-1 shrink-0 opacity-70 rtl:-scale-x-100" />
+                            {[
+                                mine && `${formatGuideNumber(planAmount ?? 0)} ${unit} · ${frequencyLabel(mine, t)}`,
+                                logged.length > 0 &&
+                                    (logged.length === 1
+                                        ? t('stats.one_dose')
+                                        : fill(t('stats.n_doses'), { n: logged.length })),
+                            ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            <ChevronRight size={16} className="shrink-0 opacity-70 rtl:-scale-x-100" />
                         </button>
                     )}
 
@@ -352,8 +328,6 @@ const Medication = ({
                             })}
                         </div>
                     )}
-
-                    <p className={`mt-3 text-xs ${muted}`}>{mine ? t('med.amount_mine') : t('med.amount_usual')}</p>
                 </div>
             </header>
 
@@ -361,43 +335,10 @@ const Medication = ({
                 <section>
                     <h2 className="text-sm font-medium text-[var(--text)] mb-1">{t('med.how_long')}</h2>
                     {series && curve.length > 0 ? (
-                        <>
-                            <DoseCurve points={curve} unit={series.unit} startMs={startMs} decimals={series.decimals} />
-                            <p className="footnote">
-                                {fill(t('med.curve_note'), {
-                                    dose: `${formatGuideNumber(amount)} ${unit}`,
-                                    kg: weight,
-                                })}{' '}
-                                <button type="button" onClick={onOpenModel} className="underline underline-offset-2">
-                                    {t('drawer.model_title')}
-                                </button>
-                            </p>
-                        </>
+                        <DoseCurve points={curve} unit={series.unit} startMs={startMs} decimals={series.decimals} />
                     ) : (
                         <p className={`text-sm ${muted}`}>{t('med.no_model')}</p>
                     )}
-                </section>
-
-                <section>
-                    <h2 className="group-heading mb-1">{t('med.sources')}</h2>
-                    <ul className={`text-xs leading-relaxed ${muted} space-y-1`}>
-                        {structure && (
-                            <li>
-                                <a
-                                    href={`https://pubchem.ncbi.nlm.nih.gov/compound/${structure.cid}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="underline underline-offset-2"
-                                >
-                                    PubChem CID {structure.cid}
-                                </a>
-                                {' · '}
-                                {t('med.source_pubchem')}
-                            </li>
-                        )}
-                        <li>{t('med.source_model')}</li>
-                        <li>{t('med.not_advice')}</li>
-                    </ul>
                 </section>
             </main>
         </>
