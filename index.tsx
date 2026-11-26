@@ -1,6 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './src/index.css';
+// Oyama Journal's page styles: molecules, dials, timelines, chips, the intro.
+import './src/styles/app.css';
 import App from './src/App';
 import { watchForAppUpdates } from './src/utils/swUpdate';
 import { preventPinchZoom } from './src/utils/preventPinchZoom';

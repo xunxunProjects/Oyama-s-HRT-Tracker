@@ -44,7 +44,13 @@ export type DoodleName =
     | 'notebook'
     | 'gear'
     | 'person'
-    | 'report';
+    | 'report'
+    | 'lens'
+    | 'flask'
+    | 'pencil'
+    | 'shield'
+    | 'molecule'
+    | 'question';
 
 const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
     // A syringe drawn with volume, needle down to the left: a plump barrel
@@ -393,14 +399,122 @@ const DRAWINGS: Partial<Record<DoodleName, React.ReactNode>> = {
             <Line d="M13.4 29 C 16.4 28.8, 19.4 29.1, 22.2 28.9" w={1.4} />
         </>
     ),
+    // VialDoodle's tube and stopper, without its drop, brought down to this size.
+    // Search: a magnifying glass, its lens washed with a glint across it and
+    // the handle a shaded grip running off to the lower right.
+    lens: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M17.2 8 C 22.4 7.8, 26.2 11.8, 26 17 C 25.9 22.2, 22 26.1, 16.9 26 C 11.8 25.9, 8 22, 8.1 16.9 C 8.2 11.9, 12.2 8.1, 17.2 8 Z"
+            />
+            <path
+                className={SHADE}
+                stroke="none"
+                d="M23.6 25.4 C 25.8 27.6, 28 29.8, 30.2 32 C 31.2 33, 32.8 32.8, 33.4 31.8 C 34 30.8, 33.8 29.8, 33 29 C 30.8 26.8, 28.6 24.6, 26.4 22.6 Z"
+            />
+            <Line d="M17.2 8 C 22.4 7.8, 26.2 11.8, 26 17 C 25.9 22.2, 22 26.1, 16.9 26 C 11.8 25.9, 8 22, 8.1 16.9 C 8.2 11.9, 12.2 8.1, 17.8 8.1" />
+            <Line d="M12.3 15.6 C 12.6 13.4, 14.1 11.7, 16.3 11.2" w={1.6} />
+            <Line d="M23.4 25.6 C 25.6 27.8, 27.9 30, 30.2 32.1 C 31.3 33.1, 32.9 32.9, 33.5 31.8 C 34 30.8, 33.7 29.7, 32.9 28.9 C 30.7 26.8, 28.6 24.6, 26.4 22.5" />
+        </>
+    ),
+    // Mix: a conical flask, its liquid washed in, the surface drawn across
+    // and bubbles rising through it.
+    flask: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M10.6 26 C 15.4 25.2, 24.6 26.8, 29.4 25.8 C 30.8 28.2, 31.9 30.2, 32.4 31.6 C 32.8 33, 31.8 33.8, 30.4 33.8 C 23.4 34, 16.6 34, 9.6 33.8 C 8.2 33.8, 7.2 32.8, 7.8 31.6 C 8.6 29.8, 9.6 27.8, 10.6 26 Z"
+            />
+            <Line d="M16.6 7.6 C 16.8 11, 16.7 14.4, 16.5 17.4 C 13.8 22.2, 10.6 27.2, 7.8 31.6 C 7.2 32.8, 8.2 33.8, 9.6 33.8 C 16.6 34, 23.4 34, 30.4 33.8 C 31.8 33.8, 32.8 33, 32.4 31.6 C 29.6 27, 26.4 22.2, 23.6 17.4 C 23.4 14.4, 23.3 11, 23.5 7.2" />
+            <Line d="M14.4 7.7 C 18 7.2, 21.8 7.5, 25.6 7.3" />
+            <Line d="M10.6 26 C 15.4 25.2, 24.6 26.8, 29.4 25.8" w={1.6} />
+            <Line
+                d="M17.4 30.6 C 17.4 29.8, 18.1 29.2, 18.9 29.3 C 19.6 29.4, 20.1 30.1, 19.9 30.8 C 19.7 31.5, 18.9 31.8, 18.2 31.5"
+                w={1.4}
+            />
+            <Line d="M23.6 29.4 C 23.7 28.9, 24.2 28.6, 24.7 28.8 C 25.2 29, 25.3 29.6, 25 30" w={1.3} />
+            <Line d="M20.6 21.6 C 20.7 21, 21.3 20.7, 21.8 20.9 C 22.3 21.1, 22.4 21.7, 22.1 22.1" w={1.3} />
+        </>
+    ),
+    // A pencil on the slant, point down to the left, with a line it has just
+    // struck through: what a report got wrong.
+    pencil: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M27.4 7.6 C 29.4 8.8, 31.4 10.6, 32.6 12.6 C 27.8 17.6, 21.4 23.8, 16 29 C 14 28.2, 11.8 26, 11 24 C 16.4 18.6, 22.4 12.6, 27.4 7.6 Z"
+            />
+            <Line d="M27.4 7.6 C 29.4 8.8, 31.4 10.6, 32.6 12.6 C 27.8 17.6, 21.4 23.8, 16 29 C 14 28.2, 11.8 26, 11 24 C 16.4 18.6, 22.4 12.6, 27.8 7.2" />
+            <Line d="M11 24 C 10 26.6, 9.2 29, 8.4 31.4 C 10.8 30.6, 13.4 29.8, 16 29" />
+            <Line d="M24.4 10.6 C 26.4 11.8, 28.2 13.6, 29.4 15.6" w={1.5} />
+            <Line d="M9.8 29.6 L 8.8 30.9" w={2.4} />
+            <Line d="M6.6 35 C 14 34.6, 22 35.2, 33.4 34.6" w={1.5} />
+        </>
+    ),
+    // A shield with a tick on it: what keeps you safe.
+    shield: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M20 6.6 C 23.6 8.6, 27.6 9.8, 31.6 10 C 31.8 19.6, 28.4 27.8, 20 33.4 C 11.6 27.6, 8.2 19.6, 8.6 10 C 12.6 9.8, 16.4 8.6, 20 6.6 Z"
+            />
+            <Line d="M20 6.6 C 23.6 8.6, 27.6 9.8, 31.6 10 C 31.8 19.6, 28.4 27.8, 20 33.4 C 11.6 27.6, 8.2 19.6, 8.6 10 C 12.6 9.8, 16.4 8.6, 20.4 6.3" />
+            <Line d="M14.6 19.8 C 16 21.2, 17.4 22.6, 18.6 24.2 C 21 20.6, 23.6 17.4, 26.4 14.6" w={2} />
+        </>
+    ),
+    // A molecule as a chemist sketches one: a six-sided ring, washed, with its
+    // three double bonds drawn inside and a short chain off one corner. What a
+    // substance is.
+    molecule: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M16.6 11.4 C 19.4 13, 22.2 14.6, 25 16.2 C 25.2 19.4, 24.9 22.6, 25 25.8 C 22.2 27.5, 19.5 29, 16.7 30.6 C 13.8 29.1, 11 27.4, 8.2 25.8 C 8.1 22.6, 8.4 19.4, 8.2 16.2 C 11 14.5, 13.8 12.9, 16.6 11.4 Z"
+            />
+            <Line d="M16.6 11.4 C 19.4 13, 22.2 14.6, 25 16.2 C 25.2 19.4, 24.9 22.6, 25 25.8 C 22.2 27.5, 19.5 29, 16.7 30.6 C 13.8 29.1, 11 27.4, 8.2 25.8 C 8.1 22.6, 8.4 19.4, 8.2 16.2 C 11 14.5, 13.8 12.9, 17 11.1" />
+            {/* The double bonds, inside every other side */}
+            <Line d="M22.2 17.9 C 22.3 20, 22.1 22.2, 22.2 24.2" w={1.5} />
+            <Line d="M11.4 24.4 C 13.1 25.4, 14.8 26.4, 16.5 27.4" w={1.5} />
+            <Line d="M11.4 17.5 C 13.1 16.5, 14.8 15.5, 16.4 14.6" w={1.5} />
+            {/* The chain off the ring */}
+            <Line d="M25 16.2 C 27 15, 29 13.7, 31 12.4 C 32.2 14, 33.4 15.6, 34.4 17.4" />
+        </>
+    ),
+    // A question mark in a ring, the ring washed. How a drug works: the
+    // question the row answers.
+    question: (
+        <>
+            <path
+                className={WASH}
+                stroke="none"
+                d="M20 6.4 C 27.6 6.2, 33.8 12.2, 33.6 19.8 C 33.8 27.6, 27.8 33.6, 20.2 33.6 C 12.6 33.8, 6.4 27.8, 6.4 20.2 C 6.2 12.6, 12.2 6.6, 20 6.4 Z"
+            />
+            <Line d="M20 6.4 C 27.6 6.2, 33.8 12.2, 33.6 19.8 C 33.8 27.6, 27.8 33.6, 20.2 33.6 C 12.6 33.8, 6.4 27.8, 6.4 20.2 C 6.2 12.6, 12.2 6.6, 20.8 6.2" />
+            <Line
+                d="M15.5 16.6 C 15.5 13.6, 17.6 11.9, 20.2 11.9 C 22.9 11.9, 24.9 13.8, 24.7 16.2 C 24.5 18.8, 21.9 19.6, 20.5 21.3 C 19.9 22.1, 19.9 23.1, 20 24.1"
+                w={2.1}
+            />
+            <Line d="M20 28 L 20.1 28.2" w={2.8} />
+        </>
+    ),
 };
 
 /** Each page's own drawing, for the sidebar. A page
  *  without one (Admin) keeps its line icon. */
 export const NAV_DOODLES: Record<string, DoodleName> = {
-    home: 'house',
+    // The five tabs, as Oyama Journal draws its own: search, the journal, the
+    // flask (labs, where the journal has its mix), the heart (the plan, where
+    // it keeps what's saved) and the gear.
+    home: 'lens',
     history: 'notebook',
-    lab: 'report',
+    lab: 'flask',
+    plan: 'heart',
     settings: 'gear',
     account: 'person',
     'settings-community': 'heart',

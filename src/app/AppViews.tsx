@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import JsDependencyNotice from '../components/JsDependencyNotice';
 import PageLoading from '../components/PageLoading';
@@ -9,6 +9,9 @@ import UpdatePrompt from '../components/UpdatePrompt';
 import type { ViewKey } from '../hooks/useAppNavigation';
 import { supportsViewTransitions } from '../motion/viewMove';
 import Home from '../pages/Home';
+import Search from '../pages/Search';
+import { JournalTabs, type JournalPanel } from '../pages/journal/JournalTabs';
+import type { DoseTemplate } from '../components/DoseForm';
 import Onboarding, { markOnboardingSeen } from '../pages/Onboarding';
 import {
     Account,
@@ -30,6 +33,10 @@ import {
     Forecast,
     History,
     HRTModeSettings,
+    JournalStats,
+    JournalWeight,
+    Kind,
+    Medication,
     HrtSecurityPage,
     ImportSettings,
     Lab,
@@ -128,6 +135,7 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
         nowH,
         currentView,
         currentTab,
+        viewParam,
         move,
         handleViewChange,
         handleTabSelect,
@@ -164,6 +172,17 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
         handleEditEvent,
         syncState,
     } = shell;
+
+    // A medicine's page sends its Log here: the journal's form opens on it.
+    const [addPrefill, setAddPrefill] = useState<Pick<DoseTemplate, 'route' | 'ester' | 'doseMG' | 'extras'> | null>(
+        null,
+    );
+    const openPanel = (p: JournalPanel) => handleViewChange(p);
+    const logFrom = (prefill: Pick<DoseTemplate, 'route' | 'ester' | 'doseMG' | 'extras'> | null) => {
+        setAddPrefill(prefill);
+        setIsQuickAddOpen(true);
+        handleViewChange('history');
+    };
 
     // Takes over the whole screen rather than sitting in the view stack: the
     // intro is where language and HRT mode get chosen, and leaving the nav up
@@ -233,60 +252,49 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                 >
                     <Suspense fallback={<PageLoading />}>
                         {currentView === 'home' && (
-                            <Home
-                                t={t}
-                                currentLevel={currentLevel}
-                                currentCPA={currentCPA}
-                                currentT={currentT}
-                                currentStatus={currentStatus}
+                            <Search
+                                onOpenMed={m => handleViewChange('med', m.id)}
+                                onOpenKind={k => handleViewChange('kind', k)}
+                            />
+                        )}
+
+                        {currentView === 'kind' && (
+                            <Kind
+                                kind={viewParam}
+                                onOpenMed={m => handleViewChange('med', m.id)}
+                                onBack={() => handleViewChange('home')}
+                            />
+                        )}
+
+                        {currentView === 'med' && (
+                            <Medication
+                                id={viewParam}
+                                weight={weight}
+                                birthYear={modelBirthYear}
                                 events={events}
-                                simulation={simulation}
-                                simulationAhead={simulationAhead}
-                                showPrediction={showPrediction}
-                                labResults={labResults}
-                                onEditEvent={handleEditEvent}
-                                calibrationFn={calibrationFn}
-                                theme={theme}
-                                onNavigateToHistory={() => {
-                                    setIsQuickAddOpen(true);
-                                    handleViewChange('history');
-                                }}
-                                onNavigateToLab={() => {
-                                    setIsQuickAddLabOpen(true);
-                                    handleViewChange('lab');
-                                }}
-                                onNavigateToShare={() => handleViewChange('share')}
-                                authToken={token}
-                                onAuthRequired={() => requireSignIn('share', 'share')}
-                                regimens={regimens}
                                 plan={plan}
-                                onLogPlanItem={handleLogPlanItem}
-                                undoableIds={undoableIds}
-                                onUndoPlanLog={handleUndoPlanLog}
-                                onNavigateToPlan={() => handleViewChange('plan')}
-                                onNavigateToSupplies={() => handleViewChange('supplies')}
-                                supplies={supplies}
-                                nowH={nowH}
-                                onNavigateToForecast={() => handleViewChange('forecast')}
-                                supplyLeadDays={supplyLeadDays}
-                                onNavigateToCommunityVote={() => openCommunityVote('home')}
-                                onCommunityVoteSignIn={() => signInForCommunityVote('home')}
+                                onBack={() => window.history.back()}
+                                onLog={(route, ester, amount) => {
+                                    const isPatch = route === 'patchApply';
+                                    logFrom({
+                                        route,
+                                        ester,
+                                        doseMG: isPatch ? 0 : amount,
+                                        extras: isPatch ? { releaseRateUGPerDay: amount } : {},
+                                    });
+                                }}
+                                onOpenJournal={() => handleViewChange('history-stats')}
+                                onOpenModel={() => handleViewChange('settings-model')}
                             />
                         )}
 
                         {currentView === 'plan' && (
-                            <Plan
-                                onBack={() => handleViewChange('home')}
-                                plan={plan}
-                                onSave={savePlanItem}
-                                onDelete={deletePlanItem}
-                                events={events}
-                            />
+                            <Plan plan={plan} onSave={savePlanItem} onDelete={deletePlanItem} events={events} />
                         )}
 
                         {currentView === 'forecast' && (
                             <Forecast
-                                onBack={() => handleViewChange('home')}
+                                onBack={() => handleViewChange('history')}
                                 events={events}
                                 weight={weight}
                                 birthYear={modelBirthYear}
@@ -303,7 +311,7 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
 
                         {currentView === 'share' && token && (
                             <ShareSettings
-                                onBack={() => handleViewChange('home')}
+                                onBack={() => handleViewChange('history')}
                                 authToken={token}
                                 mode={mode}
                                 events={events}
@@ -314,6 +322,49 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
 
                         {currentView === 'history' && (
                             <History
+                                title={t('nav.journal')}
+                                belowHeader={<JournalTabs value="history" onChange={openPanel} />}
+                                beforeList={
+                                    <Home
+                                        t={t}
+                                        currentLevel={currentLevel}
+                                        currentCPA={currentCPA}
+                                        currentT={currentT}
+                                        currentStatus={currentStatus}
+                                        events={events}
+                                        simulation={simulation}
+                                        simulationAhead={simulationAhead}
+                                        showPrediction={showPrediction}
+                                        labResults={labResults}
+                                        onEditEvent={handleEditEvent}
+                                        calibrationFn={calibrationFn}
+                                        theme={theme}
+                                        onNavigateToHistory={() => setIsQuickAddOpen(true)}
+                                        onNavigateToLab={() => {
+                                            setIsQuickAddLabOpen(true);
+                                            handleViewChange('lab');
+                                        }}
+                                        onNavigateToShare={() => handleViewChange('share')}
+                                        authToken={token}
+                                        onAuthRequired={() => requireSignIn('share', 'share')}
+                                        regimens={regimens}
+                                        plan={plan}
+                                        onLogPlanItem={handleLogPlanItem}
+                                        undoableIds={undoableIds}
+                                        onUndoPlanLog={handleUndoPlanLog}
+                                        onNavigateToPlan={() => handleViewChange('plan')}
+                                        onNavigateToSupplies={() => handleViewChange('supplies')}
+                                        supplies={supplies}
+                                        nowH={nowH}
+                                        onNavigateToForecast={() => handleViewChange('forecast')}
+                                        supplyLeadDays={supplyLeadDays}
+                                        onNavigateToCommunityVote={() => openCommunityVote('home')}
+                                        onCommunityVoteSignIn={() => signInForCommunityVote('home')}
+                                        embedded
+                                    />
+                                }
+                                listHeading={t('journal.list')}
+                                addPrefill={addPrefill}
                                 t={t}
                                 isQuickAddOpen={isQuickAddOpen}
                                 setIsQuickAddOpen={setIsQuickAddOpen}
@@ -335,6 +386,20 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 openEditId={editFromOverview}
                                 onOpenEditHandled={() => setEditFromOverview(null)}
                             />
+                        )}
+
+                        {currentView === 'history-stats' && (
+                            <JournalStats
+                                events={events}
+                                isDarkMode={isDarkMode}
+                                onPanel={openPanel}
+                                onOpenMed={id => handleViewChange('med', id)}
+                                onLog={() => logFrom(null)}
+                            />
+                        )}
+
+                        {currentView === 'history-weight' && (
+                            <JournalWeight weight={weight} onSetWeight={setWeight} onPanel={openPanel} />
                         )}
 
                         {currentView === 'lab' && (
@@ -376,6 +441,8 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
 
                         {currentView === 'settings' && (
                             <Settings
+                                onNavigateToAccount={() => handleViewChange('account')}
+                                accountName={user?.username ?? null}
                                 t={t}
                                 lang={lang}
                                 theme={theme}
@@ -498,6 +565,7 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 syncErrorCode={syncState.errorCode}
                                 lastSyncedAt={syncState.lastSyncedAt}
                                 signInReason={signInReason}
+                                onBack={() => handleViewChange('settings')}
                             />
                         )}
 
@@ -581,7 +649,7 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
 
                         {currentView === 'supplies' && (
                             <Supplies
-                                onBack={() => handleViewChange('settings')}
+                                onBack={() => window.history.back()}
                                 supplies={supplies}
                                 onSave={saveSupply}
                                 onDelete={deleteSupply}

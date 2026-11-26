@@ -77,6 +77,8 @@ interface AccountProps {
     /** Signed out, and sent here by a feature that needs an account: the form
      *  says which, and why, above itself. */
     signInReason?: 'share' | 'vote';
+    /** Back to Settings, where the account lives as Oyama Journal keeps its own. */
+    onBack?: () => void;
 }
 
 const divider = 'border-b-(length:--hairline) border-[var(--border)]';
@@ -130,6 +132,7 @@ const Account: React.FC<AccountProps> = ({
     syncErrorCode,
     lastSyncedAt,
     signInReason,
+    onBack,
 }) => {
     const [avatarError, setAvatarError] = useState(false);
     // The hrt-tool page only exists when the Worker has HRT_RAW_ENABLED and a
@@ -562,7 +565,7 @@ const Account: React.FC<AccountProps> = ({
 
     return (
         <div className="relative md:pb-32">
-            <PageHeader title={t('account.title')} />
+            <PageHeader title={t('account.title')} onBack={onBack} />
 
             {user ? (
                 <div className={`${PAGE_COLUMN} mt-3 space-y-8`}>

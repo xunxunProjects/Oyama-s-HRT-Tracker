@@ -112,6 +112,16 @@ interface HistoryProps {
      *  the Overview's chart) sent someone here to change it. */
     openEditId?: string | null;
     onOpenEditHandled?: () => void;
+    /** The page's title, when it is the Journal rather than the dose list alone. */
+    title?: string;
+    /** Under the title: the Journal's tabs. */
+    belowHeader?: React.ReactNode;
+    /** Above the list: the Journal's "now". */
+    beforeList?: React.ReactNode;
+    /** The list's own heading, once something sits above it. */
+    listHeading?: string;
+    /** What the add form starts on when a medicine's page sent someone here to log it. */
+    addPrefill?: Pick<DoseTemplate, 'route' | 'ester' | 'doseMG' | 'extras'> | null;
 }
 
 const History: React.FC<HistoryProps> = ({
@@ -132,6 +142,11 @@ const History: React.FC<HistoryProps> = ({
     onDeleteQuickDose,
     openEditId,
     onOpenEditHandled,
+    title,
+    belowHeader,
+    beforeList,
+    listHeading,
+    addPrefill = null,
 }) => {
     const { showDialog } = useDialog();
     const [editingId, setEditingId] = useState<string | null>(openEditId ?? null);
@@ -527,7 +542,7 @@ const History: React.FC<HistoryProps> = ({
     return (
         <div className="relative md:pb-32">
             <PageHeader
-                title={t('timeline.title')}
+                title={title ?? t('timeline.title')}
                 // Always one line: wrapped, it grew the header past the 5rem
                 // the day labels are pinned at. In select mode it counts the
                 // selection, which is what the page is about to act on.
@@ -591,12 +606,18 @@ const History: React.FC<HistoryProps> = ({
                                 aria-expanded={isQuickAddOpen}
                                 className={`${headerBtn} text-[var(--accent-ink)] tap-target`}
                             >
-                                <AddCancelLabel open={isQuickAddOpen} add={t('btn.add')} cancel={t('btn.cancel')} />
+                                <AddCancelLabel
+                                    open={isQuickAddOpen}
+                                    add={title ? t('med.log') : t('btn.add')}
+                                    cancel={t('btn.cancel')}
+                                />
                             </button>
                         </>
                     )
                 }
             />
+
+            {belowHeader}
 
             {/* Said aloud when a save is marked, for anyone who cannot see the tick. */}
             <p className="sr-only" aria-live="polite">
@@ -655,6 +676,7 @@ const History: React.FC<HistoryProps> = ({
                             onDeleteTemplate={onDeleteTemplate}
                             isInline={true}
                             events={events ?? allEvents}
+                            prefill={addPrefill}
                             quickDoses={quickDoses}
                             onAddQuickDose={onAddQuickDose}
                             onDeleteQuickDose={onDeleteQuickDose}
@@ -673,6 +695,13 @@ const History: React.FC<HistoryProps> = ({
                     <button type="button" onClick={() => setIsQuickAddOpen(true)} className="btn-primary">
                         {t('home.empty_cta')}
                     </button>
+                </div>
+            )}
+
+            {beforeList}
+            {listHeading && groupedEvents.length > 0 && (
+                <div className={`${PAGE_COLUMN} mt-2`}>
+                    <h2 className="group-heading mb-1">{listHeading}</h2>
                 </div>
             )}
 

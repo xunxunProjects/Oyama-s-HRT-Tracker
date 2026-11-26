@@ -37,6 +37,7 @@ import Tick from './Tick';
 import { cleanDoseMG } from '../utils/cleanDose';
 import { inertWhen } from '../utils/inert';
 import { WaitMark } from './Waiting';
+import { DOSE_GUIDE_CONFIG, LEVEL_BADGE_STYLES, formatGuideNumber, type DoseLevelKey } from '../data/doseGuide';
 
 export interface DoseTemplate {
     id: string;
@@ -47,35 +48,6 @@ export interface DoseTemplate {
     extras: Partial<Record<ExtraKey, number>>;
     createdAt: number;
 }
-
-type DoseLevelKey = 'low' | 'medium' | 'high' | 'very_high' | 'above';
-
-type DoseGuideConfig = {
-    unitKey: 'mg_day' | 'ug_day' | 'mg_week';
-    thresholds: [number, number, number, number];
-    requiresRate?: boolean;
-};
-
-const DOSE_GUIDE_CONFIG: Partial<Record<Route, DoseGuideConfig>> = {
-    [Route.oral]: { unitKey: 'mg_day', thresholds: [2, 4, 8, 12] },
-    [Route.sublingual]: { unitKey: 'mg_day', thresholds: [1, 2, 4, 6] },
-    [Route.patchApply]: { unitKey: 'ug_day', thresholds: [100, 200, 400, 600], requiresRate: true },
-    [Route.gel]: { unitKey: 'mg_day', thresholds: [1.5, 3, 6, 9] },
-};
-
-const LEVEL_BADGE_STYLES: Record<DoseLevelKey, string> = {
-    low: 'text-[var(--status-positive)]',
-    medium: 'text-[var(--status-info)]',
-    high: 'text-[var(--warning)]',
-    very_high: 'text-[var(--danger)]',
-    above: 'text-[var(--danger)]',
-};
-
-const formatGuideNumber = (val: number) => {
-    if (Number.isInteger(val)) return val.toString();
-    const rounded = val < 1 ? val.toFixed(2) : val.toFixed(1);
-    return rounded.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-};
 
 interface DoseFormProps {
     eventToEdit: DoseEvent | null;
@@ -93,6 +65,9 @@ interface DoseFormProps {
     /** Existing doses: a new dose starts on the route and drug of the last
      *  one, and recent use shows whether it is already running high. */
     events?: DoseEvent[];
+    /** A new dose that starts already chosen: a medicine page's Log, with
+     *  the route and the amount it showed. */
+    prefill?: Pick<DoseTemplate, 'route' | 'ester' | 'doseMG' | 'extras'> | null;
 }
 
 // A stored dose as it is put back into a field: "12.5", not "12.500". Still
@@ -136,6 +111,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
     onAddQuickDose,
     onDeleteQuickDose,
     events = [],
+    prefill = null,
 }) => {
     const { t, lang } = useTranslation();
     const { showDialog } = useDialog();
@@ -383,7 +359,8 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         : best,
                 null,
             );
-            if (last) fillFrom(last, false);
+            if (prefill) fillFrom(prefill, prefill.doseMG > 0 || !!prefill.extras.releaseRateUGPerDay);
+            else if (last) fillFrom(last, false);
         }
 
         // Use timeout to allow state to settle

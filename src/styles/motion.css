@@ -73,55 +73,6 @@
     }
 }
 
-/* ── the odometer ────────────────────────────────────────────────────────────
-   A number on reels that roll as one (Odometer.tsx): the Overview's readings,
-   the plan's counts, the model pages' figures. */
-
-.odo {
-    display: inline-flex;
-    align-items: baseline;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-.odo-defs {
-    position: absolute;
-    width: 0;
-    height: 0;
-}
-.odo-group {
-    display: inline-flex;
-    align-items: baseline;
-}
-/* One place: a window one digit wide (1ch: every figure is that wide, set
-   tabular) and one line tall onto its reel, fading at top and bottom like a
-   drum seen through a slot. Odometer.tsx opens and folds a leading place by
-   its width, frame by frame, in step with the roll. */
-.odo-slot {
-    position: relative;
-    display: inline-block;
-    width: 1ch;
-    height: 1em;
-    line-height: 1;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
-    mask-image: linear-gradient(transparent, #000 12%, #000 88%, transparent);
-}
-.odo-reel {
-    display: flex;
-    flex-direction: column;
-    will-change: transform;
-}
-.odo-digit {
-    display: block;
-    height: 1em;
-    line-height: 1;
-    text-align: center;
-}
-.odo-point {
-    width: 0.28em;
-    text-align: center;
-}
-
 /* ── pages ───────────────────────────────────────────────────────────────────
    Moves between views run as view transitions (motion/viewMove.ts), and only
    the page area takes part: the sidebar and the bottom bar are left out of it

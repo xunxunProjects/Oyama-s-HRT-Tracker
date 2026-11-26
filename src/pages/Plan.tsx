@@ -109,7 +109,8 @@ const AmountFields: React.FC<{
 };
 
 interface PlanProps {
-    onBack: () => void;
+    /** None as a tab of its own, as Oyama Journal's Saved is. */
+    onBack?: () => void;
     plan: PlanItem[];
     onSave: (item: PlanItem) => void;
     onDelete: (id: string) => void;
@@ -165,7 +166,7 @@ const Plan: React.FC<PlanProps> = ({ onBack, plan, onSave, onDelete, events }) =
     };
 
     // Backing out of the questions this page opened with goes back where they came from.
-    const cancelAdding = () => (cameInEmpty ? onBack() : setAdding(false));
+    const cancelAdding = () => (cameInEmpty && onBack ? onBack() : setAdding(false));
 
     // Adding is this page's content while it runs: the questions, under a
     // title whose back arrow backs out of them.

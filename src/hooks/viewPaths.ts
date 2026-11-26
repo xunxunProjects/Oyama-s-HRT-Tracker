@@ -17,17 +17,26 @@ import { getShareCopy } from '../i18n/share';
  *   address lands in the browser's history, on a device that may be shared.
  */
 export const VIEW_PATH: Record<ViewKey, string> = {
+    // Search, and what it opens: a kind of medicine, and a medicine. A
+    // medicine's own address is only /meds: which one stays in the page's
+    // history entry (see the rules above).
     home: '/',
+    kind: '/kind',
+    med: '/meds',
+
+    // The journal, its panels, and the pages its "now" opens.
+    history: '/journal',
+    'history-stats': '/journal/stats',
+    'history-weight': '/journal/weight',
+    forecast: '/journal/forecast',
+    share: '/journal/share',
+
+    lab: '/labs',
+    'lab-calibration': '/labs/calibration',
+    'lab-calibration-guide': '/labs/calibration/guide',
+
     plan: '/plan',
-    forecast: '/forecast',
-    share: '/sharing',
-    supplies: '/supplies',
-
-    history: '/history',
-
-    lab: '/lab',
-    'lab-calibration': '/lab/calibration',
-    'lab-calibration-guide': '/lab/calibration/guide',
+    supplies: '/plan/supplies',
 
     settings: '/settings',
     'settings-hrt-mode': '/settings/hrt-mode',
@@ -49,15 +58,16 @@ export const VIEW_PATH: Record<ViewKey, string> = {
     'settings-simulator': '/settings/simulator',
     'pk-params': '/settings/pk-params',
 
-    account: '/account',
-    sessions: '/account/sessions',
-    'hrt-security': '/account/hrt-security',
-    f2f: '/account/f2f',
-    'two-factor': '/account/two-factor',
-    'change-password': '/account/password',
-    'delete-account': '/account/delete',
-    'edit-profile': '/account/profile',
-    'edit-avatar': '/account/avatar',
+    // The account, inside Settings as Oyama Journal keeps its own.
+    account: '/settings/account',
+    sessions: '/settings/sessions',
+    'hrt-security': '/settings/hrt-security',
+    f2f: '/settings/f2f',
+    'two-factor': '/settings/two-factor',
+    'change-password': '/settings/password',
+    'delete-account': '/settings/delete-account',
+    'edit-profile': '/settings/profile',
+    'edit-avatar': '/settings/avatar',
 
     admin: '/admin',
 };
@@ -65,10 +75,13 @@ export const VIEW_PATH: Record<ViewKey, string> = {
 /** The levels Settings and Admin open on a phone (and show as tabs when wide). */
 export const SETTINGS_CATS = ['general', 'data', 'about'] as const;
 export const ADMIN_CATS = ['users', 'notice', 'donation', 'system'] as const;
+/** The kinds of medicine Search files them under (data/meds.ts). */
+export const KIND_IDS = ['estrogen', 'antiandrogen', 'progestogen', 'gnrh', 'serm', 'androgen'] as const;
 
 const CATS_OF: Partial<Record<ViewKey, readonly string[]>> = {
     settings: SETTINGS_CATS,
     admin: ADMIN_CATS,
+    kind: KIND_IDS,
 };
 
 /** A page's address, with the category it has open when it has one. */
@@ -105,10 +118,16 @@ export const parsePath = (pathname: string): { view: ViewKey; cat?: string } | n
  * own header uses. The Overview is the app's name alone.
  */
 const TITLE_KEY: Partial<Record<ViewKey, string>> = {
+    // A medicine's page is called only that: its name would sit in the
+    // browser's history.
+    med: 'med.title',
+    kind: 'nav.search',
+    'history-stats': 'journal.tab.stats',
+    'history-weight': 'journal.tab.weight',
     plan: 'plan.title',
     forecast: 'forecast.title',
     supplies: 'supplies.title',
-    history: 'timeline.title',
+    history: 'nav.journal',
     lab: 'lab.title',
     'lab-calibration': 'cal.settings',
     'lab-calibration-guide': 'cal_guide.title',
@@ -145,6 +164,7 @@ const TITLE_KEY: Partial<Record<ViewKey, string>> = {
 /** The document title for a page: its name, then the app's. */
 export const titleFor = (view: ViewKey, t: (key: string) => string, lang: Lang): string => {
     const app = t('app.title');
+    if (view === 'home') return `${t('nav.search')} · ${app}`;
     const page =
         view === 'share'
             ? getShareCopy(lang).modalTitle

@@ -70,6 +70,13 @@ interface HomeProps {
     /** Bottom-of-page community vote nudge; opens the vote page or sign-in. */
     onNavigateToCommunityVote: () => void;
     onCommunityVoteSignIn: () => void;
+    /**
+     * Drawn as the journal's "now": the top of the Journal page, as Oyama
+     * Journal opens its own on the session still going. One column, no
+     * empty state of its own (the journal has one), and the dose calendar
+     * moves to the journal's Stats.
+     */
+    embedded?: boolean;
 }
 
 const Home: React.FC<HomeProps> = ({
@@ -104,6 +111,7 @@ const Home: React.FC<HomeProps> = ({
     onNavigateToSupplies,
     onNavigateToCommunityVote,
     onCommunityVoteSignIn,
+    embedded = false,
 }) => {
     const isDarkMode =
         theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -239,14 +247,14 @@ const Home: React.FC<HomeProps> = ({
     // keep: in a desktop window the readings and chart sat in a phone's width
     // with the rest of the pane empty either side. The empty state centres
     // itself on this column and stays narrow.
-    const overviewColumn = events.length ? 'lg:max-w-[96rem]' : '';
+    const overviewColumn = events.length && !embedded ? 'lg:max-w-[96rem]' : '';
 
     // A wide but short window (a phone turned sideways) has no height to stack
     // the readings over the chart: the chart started below the fold. There the
     // reading moves into the sidebar, between the name and the pages (portalled
     // into #sidebar-status), and the page beside it starts with the chart at
     // the screen's height. The advisory and the plan follow underneath.
-    const chartFirst = showHeader && events.length > 0;
+    const chartFirst = !embedded && showHeader && events.length > 0;
     // Read straight from the DOM: the sidebar is mounted beside this page, and
     // React re-reads the snapshot after committing, so the slot is picked up
     // on the first pass where it exists.
@@ -322,7 +330,7 @@ const Home: React.FC<HomeProps> = ({
                 the far edge. */}
             {showHeader && (
                 <header
-                    className={`pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)] ${chartFirst ? 'touch-short:order-2 touch-short:border-b-0 touch-short:border-t-(length:--hairline) touch-short:pb-10' : ''}`}
+                    className={`${embedded ? 'pt-1 pb-2' : 'pt-6 pb-5 border-b-(length:--hairline) border-[var(--border)]'} ${chartFirst ? 'touch-short:order-2 touch-short:border-b-0 touch-short:border-t-(length:--hairline) touch-short:pb-10' : ''}`}
                 >
                     <div className={`mx-auto px-6 md:px-8 max-w-2xl ${overviewColumn}`}>
                         {hasReading && (
@@ -752,31 +760,33 @@ const Home: React.FC<HomeProps> = ({
                 of the row up to its own width, and the chart takes the rest;
                 narrower than that it drops underneath. */}
             <main
-                className={`w-full mx-auto max-w-2xl px-6 pt-5 md:pb-32 md:px-8 ${overviewColumn} ${chartFirst ? 'touch-short:order-1 touch-short:max-w-none touch-short:pt-4 touch-short:pb-6' : ''}`}
+                className={`w-full mx-auto max-w-2xl px-6 md:px-8 ${embedded ? 'pt-3 pb-8' : 'pt-5 md:pb-32'} ${overviewColumn} ${chartFirst ? 'touch-short:order-1 touch-short:max-w-none touch-short:pt-4 touch-short:pb-6' : ''}`}
             >
                 {events.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-                        <DoseDoodle className="w-24 h-auto mb-6" />
-                        <p className={`text-sm font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
-                        {/* Balanced, so short centred copy breaks evenly rather
+                    embedded ? null : (
+                        <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+                            <DoseDoodle className="w-24 h-auto mb-6" />
+                            <p className={`text-sm font-semibold ${on} mb-1`}>{t('home.empty_title')}</p>
+                            {/* Balanced, so short centred copy breaks evenly rather
                             than leaving one character alone on a second line. */}
-                        <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
-                        {/* Logging a dose is the one thing this page is waiting
+                            <p className={`text-sm ${muted} mb-6 max-w-xs text-balance`}>{t('home.empty_subtitle')}</p>
+                            {/* Logging a dose is the one thing this page is waiting
                             for, so it is the one terracotta button on it. */}
-                        <button onClick={onNavigateToHistory} className="btn-primary">
-                            {t('home.empty_cta')}
-                        </button>
-                        {!showPlanBlock && (
-                            <button
-                                type="button"
-                                onClick={onNavigateToPlan}
-                                className={`${headerAction} ${muted} tap-target mt-3`}
-                            >
-                                {t('plan.title')}
-                                <ChevronRight size={15} />
+                            <button onClick={onNavigateToHistory} className="btn-primary">
+                                {t('home.empty_cta')}
                             </button>
-                        )}
-                    </div>
+                            {!showPlanBlock && (
+                                <button
+                                    type="button"
+                                    onClick={onNavigateToPlan}
+                                    className={`${headerAction} ${muted} tap-target mt-3`}
+                                >
+                                    {t('plan.title')}
+                                    <ChevronRight size={15} />
+                                </button>
+                            )}
+                        </div>
+                    )
                 ) : (
                     <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-10">
                         <div className="min-w-0 xl:flex-2">
@@ -794,11 +804,13 @@ const Home: React.FC<HomeProps> = ({
                                 fillShort={chartFirst}
                             />
                         </div>
-                        <DoseHeatmap
-                            events={events}
-                            isDarkMode={isDarkMode}
-                            className="min-w-0 xl:flex-1 xl:min-w-[16rem] xl:max-w-[26rem]"
-                        />
+                        {!embedded && (
+                            <DoseHeatmap
+                                events={events}
+                                isDarkMode={isDarkMode}
+                                className="min-w-0 xl:flex-1 xl:min-w-[16rem] xl:max-w-[26rem]"
+                            />
+                        )}
                     </div>
                 )}
                 {events.length > 0 && (
@@ -813,7 +825,9 @@ const Home: React.FC<HomeProps> = ({
                         </button>
                     </div>
                 )}
-                <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
+                {!embedded && (
+                    <CommunityVotePrompt onVote={onNavigateToCommunityVote} onSignIn={onCommunityVoteSignIn} />
+                )}
             </main>
         </div>
     );

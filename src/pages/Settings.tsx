@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, Sliders, Database, Info } from '../components/icons';
+import { ChevronRight, Sliders, Database, Info, Account as AccountIcon } from '../components/icons';
 import { Lang } from '../i18n/translations';
 import { AppTheme } from '../constants';
 import { DoseEvent, PKCustomParams } from '../../logic';
@@ -23,6 +23,10 @@ import {
 import { parsePath, pathFor } from '../hooks/viewPaths';
 
 interface SettingsProps {
+    /** The account, as the first tile (Oyama Journal keeps its account in Settings). */
+    onNavigateToAccount?: () => void;
+    /** Who is signed in, for the account tile's line. */
+    accountName?: string | null;
     t: (key: string) => string;
     lang: Lang;
     theme: AppTheme;
@@ -164,6 +168,8 @@ const leaveMobileCat = (setMobileView: (v: MobileView) => void) => {
 };
 
 const Settings: React.FC<SettingsProps> = ({
+    onNavigateToAccount,
+    accountName,
     t,
     lang,
     theme,
@@ -515,6 +521,31 @@ const Settings: React.FC<SettingsProps> = ({
     // Called, not mounted as <Component />: a component declared inside render is
     // a new type every render, so React would tear the rows down on each toggle
     // and a keyboard user's focus would drop off the switch they just pressed.
+    // The account, first, as Oyama Journal keeps its own: the same tile as the
+    // categories, its line saying who is signed in or what an account is for.
+    const accountTile = onNavigateToAccount ? (
+        <button
+            onClick={onNavigateToAccount}
+            style={{ '--divider-inset': '3rem' } as React.CSSProperties}
+            className={`${rowBase} ${rowBleed}`}
+        >
+            <div className="flex items-center gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-muted)]">
+                    <AccountIcon size={20} strokeWidth={1.75} className={muted} />
+                </div>
+                <div className="text-start">
+                    <p className={`text-sm font-medium ${on}`}>{t('account.title')}</p>
+                    <p className={`text-xs ${muted} mt-0.5`}>
+                        {accountName
+                            ? t('settings.account_in').replace('{name}', accountName)
+                            : t('settings.account_out')}
+                    </p>
+                </div>
+            </div>
+            <ChevronRight size={18} className={`${muted} shrink-0 opacity-70 rtl:-scale-x-100`} />
+        </button>
+    ) : null;
+
     const catContent = (id: SettingsCat) => {
         if (id === 'general') return renderGeneral();
         if (id === 'data') return renderData();
@@ -531,6 +562,7 @@ const Settings: React.FC<SettingsProps> = ({
                         <>
                             <PageHeader title={t('nav.settings')} />
                             <div className={`${PAGE_COLUMN} mt-3 ${section}`}>
+                                {accountTile}
                                 {cats.map(({ id, label, Icon, hint }) => (
                                     <button
                                         key={id}
@@ -571,6 +603,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="hidden md:block">
                 <PageHeader title={t('nav.settings')} />
                 <div className={`${PAGE_COLUMN} mt-3`}>
+                    {accountTile && <div className={`${section} mb-6`}>{accountTile}</div>}
                     <Tabs tabs={cats} value={cat} onChange={selectCat} className="mb-4" />
                     <div key={cat} className={catAnim}>
                         {catContent(cat)}

@@ -208,6 +208,8 @@ export const SHARED_SUFFIXES = [
     'birth-year-at',
     'age-beta',
     'model-settings-at',
+    // The Journal's weighings (pages/JournalWeight.tsx).
+    'weight-log',
 ] as const;
 
 /**

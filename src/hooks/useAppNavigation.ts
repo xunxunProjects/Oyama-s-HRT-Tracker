@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { ElementType } from 'react';
-import { House, Log, Labs, Gear, Account, Shield, Users } from '../components/icons';
+import { Search, Log, Labs, Gear, Bookmark, Shield, Users } from '../components/icons';
 import { voteStatusAt } from '../../communityVote';
 import { runViewMove, type ViewMove } from '../motion/viewMove';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -54,18 +54,32 @@ export type ViewKey =
     | 'settings-simulator'
     | 'forecast'
     | 'supplies'
-    | 'plan';
+    | 'plan'
+    | 'med'
+    | 'kind'
+    | 'history-stats'
+    | 'history-weight';
 
 /**
- * Which top-level tab a view belongs to, so the sidebar and the bottom bar
- * both keep their section lit while a page inside it is open.
+ * The page each page is opened from, laid out as Oyama Journal lays out its
+ * own: five tabs (Search, the Journal, Labs where the journal keeps its mix,
+ * the Plan where it keeps what's saved, Settings), each with its pages under
+ * it. The account lives in Settings, as the journal's does, with its own
+ * pages under it. Back from a page returns to the page above it.
  */
-const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
-    forecast: 'home',
-    plan: 'home',
-    share: 'home',
+const PARENT: Partial<Record<ViewKey, ViewKey>> = {
+    // Search: a medicine, and a kind of medicine.
+    med: 'home',
+    kind: 'home',
+    // The journal: the forecast and sharing hang off what it shows now.
+    forecast: 'history',
+    share: 'history',
+    // Labs.
     'lab-calibration': 'lab',
     'lab-calibration-guide': 'lab',
+    // The plan, and what's on hand for it.
+    supplies: 'plan',
+    // Settings.
     'settings-hrt-mode': 'settings',
     'settings-language': 'settings',
     'settings-appearance': 'settings',
@@ -84,7 +98,8 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'settings-cat-states': 'settings',
     'settings-simulator': 'settings',
     'pk-params': 'settings',
-    supplies: 'settings',
+    account: 'settings',
+    // The account's own pages.
     sessions: 'account',
     'hrt-security': 'account',
     f2f: 'account',
@@ -94,34 +109,56 @@ const VIEW_TAB: Partial<Record<ViewKey, ViewKey>> = {
     'edit-profile': 'account',
     'edit-avatar': 'account',
 };
-export const tabForView = (view: ViewKey): ViewKey => VIEW_TAB[view] ?? view;
+
+/** The tab a page sits under: up through its parents to the top. */
+export const tabForView = (view: ViewKey): ViewKey => {
+    let v = view;
+    for (let i = 0; i < 4 && PARENT[v]; i++) v = PARENT[v]!;
+    return v;
+};
 
 /**
- * Where Back leads from a page: its tab, as above. The admin area is a tab of
+ * Where Back leads from a page: the page above it. The admin area is a tab of
  * its own beside a wide screen's sidebar, but a phone opens it from Settings,
  * so opened from Settings it is a page of Settings and Back returns there.
  */
-const parentOf = (view: ViewKey): ViewKey | undefined => (view === 'admin' ? 'settings' : VIEW_TAB[view]);
+const parentOf = (view: ViewKey): ViewKey | undefined => (view === 'admin' ? 'settings' : PARENT[view]);
 
 /**
- * Pages another tab's page also opens. Supplies lives under Settings, but the
- * Overview's running-low line opens it too, and opened from there it is a page
- * of the Overview: its tab stays lit and Back returns to the Overview, rather
- * than the jump landing on Settings, a tab nobody tapped.
+ * Pages other tabs' pages also open, and keep under themselves: a medicine
+ * opened from the plan or from the journal's stats is a page of that tab,
+ * which stays lit, and Back returns there rather than to Search. The supplies
+ * a running-low line in the journal opens are the journal's too.
  */
-const ALSO_UNDER: Partial<Record<ViewKey, ViewKey>> = {
-    supplies: 'home',
+const ALSO_UNDER: Partial<Record<ViewKey, readonly ViewKey[]>> = {
+    med: ['plan', 'history', 'history-stats', 'lab'],
+    supplies: ['history'],
 };
+const alsoUnder = (view: ViewKey, from: ViewKey) => !!ALSO_UNDER[view]?.includes(from);
+
+/**
+ * The journal's three panels (Log, Stats, Weight): one page, switched by the
+ * tabs under its title. Choosing one takes over the entry rather than adding
+ * one, and lights the Journal tab.
+ */
+const PANELS: readonly ViewKey[] = ['history', 'history-stats', 'history-weight'];
+const isPanel = (v: ViewKey) => PANELS.includes(v);
+const litTab = (tab: ViewKey): ViewKey => (isPanel(tab) ? 'history' : tab);
 
 const VIEW_ORDER: ViewKey[] = [
     'home',
-    'plan',
+    'kind',
+    'med',
+    'history',
+    'history-stats',
+    'history-weight',
     'forecast',
     'share',
-    'history',
     'lab',
     'lab-calibration',
     'lab-calibration-guide',
+    'plan',
+    'supplies',
     'settings',
     'account',
     'sessions',
@@ -133,7 +170,6 @@ const VIEW_ORDER: ViewKey[] = [
     'edit-profile',
     'edit-avatar',
     'pk-params',
-    'supplies',
     'settings-hrt-mode',
     'settings-language',
     'settings-appearance',
@@ -163,10 +199,11 @@ const directionOf = (from: ViewKey, to: ViewKey): Direction =>
  * survives the reload), else the page the address names (a link, a bookmark,
  * an address typed in), else the Overview.
  */
-const openingPage = (): { view: ViewKey; under?: ViewKey } => {
+const openingPage = (): { view: ViewKey; under?: ViewKey; param?: string } => {
     const entry = readNavEntry();
-    if (entry) return { view: entry.view, under: entry.under };
-    return { view: parsePath(window.location.pathname)?.view ?? 'home' };
+    if (entry) return { view: entry.view, under: entry.under, param: entry.cat };
+    const named = parsePath(window.location.pathname);
+    return named ? { view: named.view, param: named.cat } : { view: 'home' };
 };
 
 /** A sidebar destination. The badge is the quiet dot that marks an open vote. */
@@ -189,6 +226,10 @@ export const useAppNavigation = (user: any) => {
     const [move, setMove] = useState<ViewMove>('fade');
     // Set while a page from ALSO_UNDER is open under the other tab.
     const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(opening.under ?? null);
+    // What the page is of, for the pages that show one thing of many: the
+    // medicine on a medicine's page, the kind on a kind's. Kept in the page's
+    // history entry, so Back and a reload bring the same one back.
+    const [viewParam, setViewParam] = useState<string | undefined>(opening.param);
     // Whether the funding vote still has an open door in the sidebar. It
     // closes on its own at the deadline, without waiting for a reload.
     const [voteOpen, setVoteOpen] = useState(() => voteStatusAt(Math.floor(Date.now() / 1000)) !== 'closed');
@@ -207,11 +248,18 @@ export const useAppNavigation = (user: any) => {
     const restoreScroll = useRef(false);
     // A move waiting for history.go to step back to the base entry first: a
     // tab, or a jump to a page under another tab.
-    const pending = useRef<{ view: ViewKey; direction: Direction; how: ViewMove } | null>(null);
+    const pending = useRef<{ view: ViewKey; direction: Direction; how: ViewMove; param?: string } | null>(null);
 
     // --- Actions ---
     const show = useCallback(
-        (view: ViewKey, direction: Direction, restore: boolean, under?: ViewKey, how: ViewMove = 'fade') => {
+        (
+            view: ViewKey,
+            direction: Direction,
+            restore: boolean,
+            under?: ViewKey,
+            how: ViewMove = 'fade',
+            param?: string,
+        ) => {
             const el = mainScrollRef.current;
             if (el) scrollTops.current[viewRef.current] = el.scrollTop;
             viewRef.current = view;
@@ -222,6 +270,7 @@ export const useAppNavigation = (user: any) => {
                     setTransitionDirection(direction);
                     setMove(how);
                     setOpenedUnder(under ?? null);
+                    setViewParam(param);
                     setCurrentView(view);
                 },
                 // Inside a move the frame-later retry below comes too late:
@@ -241,55 +290,66 @@ export const useAppNavigation = (user: any) => {
     // when it is a page inside that tab, so Back from it still has somewhere
     // to go. Only ever called with history at the base entry.
     const land = useCallback(
-        (view: ViewKey, direction: Direction, how: ViewMove = 'fade') => {
+        (view: ViewKey, direction: Direction, how: ViewMove = 'fade', param?: string) => {
             const tab = tabForView(view);
             replaceNavEntry(tab, 0);
-            if (tab !== view) pushNavEntry(view, 1);
-            show(view, direction, false, undefined, how);
+            if (tab !== view) pushNavEntry(view, 1, param);
+            show(view, direction, false, undefined, how, param);
         },
         [show],
     );
 
     // While a step back is still on its way, the entry it leaves is still the
     // current one, so the move waits in `pending` and popstate carries it on.
-    const jump = (view: ViewKey, direction: Direction, how: ViewMove = 'fade') => {
+    const jump = (view: ViewKey, direction: Direction, how: ViewMove = 'fade', param?: string) => {
         const depth = navDepth();
         if (depth > 0 || isSteppingBack()) {
-            pending.current = { view, direction, how };
+            pending.current = { view, direction, how, param };
             stepBack(depth);
         } else {
-            land(view, direction, how);
+            land(view, direction, how, param);
         }
     };
 
-    /** Every way to another view from inside a page: a row that opens a page, a page's back arrow, a link across. */
-    const handleViewChange = (view: ViewKey) => {
+    /**
+     * Every way to another view from inside a page: a row that opens a page, a
+     * page's back arrow, a link across. `param` names the one thing a page
+     * shows when it shows one of many (a medicine, a kind).
+     */
+    const handleViewChange = (view: ViewKey, param?: string) => {
         const from = viewRef.current;
-        if (view === from || isSteppingBack()) return;
+        if ((view === from && param === viewParam) || isSteppingBack()) return;
         const depth = navDepth();
+        // The journal's panels are tabs of one page: the entry is taken over,
+        // and the page itself slides its panel in.
+        if (isPanel(view) && isPanel(from)) {
+            replaceNavEntry(view, depth);
+            show(view, directionOf(from, view), false, undefined, 'none');
+            return;
+        }
         // Up to the page this one was opened from: back through history, so
         // the entry pushed on the way in goes with it, and popstate shows it.
-        if (depth > 0 && parentOf(from) === view) {
+        if (depth > 0 && (parentOf(from) === view || readNavEntry()?.under === view) && param === undefined) {
             stepBack();
             return;
         }
         if (parentOf(view) === from) {
-            pushNavEntry(view, depth + 1);
-            show(view, 'forward', false, undefined, 'push');
+            pushNavEntry(view, depth + 1, param);
+            show(view, 'forward', false, undefined, 'push', param);
             return;
         }
-        if (ALSO_UNDER[view] === from) {
-            pushNavEntry(view, depth + 1, undefined, from);
-            show(view, 'forward', false, from, 'push');
+        if (alsoUnder(view, from)) {
+            pushNavEntry(view, depth + 1, param, from);
+            show(view, 'forward', false, from, 'push', param);
             return;
         }
         // A sibling page sits at the same level, so it takes over the entry.
         if (depth > 0 && parentOf(view) !== undefined && parentOf(view) === parentOf(from)) {
-            replaceNavEntry(view, depth);
-            show(view, directionOf(from, view), false);
+            replaceNavEntry(view, depth, param, readNavEntry()?.under);
+            show(view, directionOf(from, view), false, readNavEntry()?.under, 'fade', param);
             return;
         }
-        jump(view, directionOf(from, view));
+        jump(view, directionOf(from, view), 'fade', param);
     };
 
     /**
@@ -335,7 +395,7 @@ export const useAppNavigation = (user: any) => {
         }
         const tab = tabForView(named.view);
         replaceNavEntry(tab, 0);
-        if (tab !== named.view) pushNavEntry(named.view, 1);
+        if (tab !== named.view) pushNavEntry(named.view, 1, named.cat);
         else if (named.cat) pushNavEntry(tab, 1, named.cat);
     }, []);
 
@@ -353,10 +413,14 @@ export const useAppNavigation = (user: any) => {
                     return;
                 }
                 pending.current = null;
-                land(next.view, next.direction, next.how);
+                land(next.view, next.direction, next.how, next.param);
                 return;
             }
-            if (entry.view === viewRef.current) return;
+            if (entry.view === viewRef.current) {
+                // The same page, of another thing (one medicine, then another).
+                setViewParam(entry.cat);
+                return;
+            }
             // A Forward lands only on a page opened from the one showing. Any
             // other was left above the base entry before a tab took its place
             // (Overview > What-if, Back, then the History tab), so shown here
@@ -370,12 +434,12 @@ export const useAppNavigation = (user: any) => {
             // Back up to the page this one was opened from, or Forward into one.
             const from = viewRef.current;
             const how: ViewMove =
-                parentOf(from) === entry.view || ALSO_UNDER[from] === entry.view
+                parentOf(from) === entry.view || alsoUnder(from, entry.view)
                     ? 'pop'
                     : parentOf(entry.view) === from || entry.under === from
                       ? 'push'
                       : 'fade';
-            show(entry.view, directionOf(from, entry.view), true, entry.under, how);
+            show(entry.view, directionOf(from, entry.view), true, entry.under, how, entry.cat);
         };
         window.addEventListener('popstate', onPop);
         return () => window.removeEventListener('popstate', onPop);
@@ -398,12 +462,14 @@ export const useAppNavigation = (user: any) => {
     }, [currentView]);
 
     // --- Derived Data ---
+    // Oyama Journal's five, in its order: Search, Journal, the flask (its
+    // mix, our labs), the heart (its saved, our plan), Settings.
     const navItems: NavItem[] = [
-        { id: 'home', label: t('nav.home'), icon: House },
-        { id: 'history', label: t('nav.history'), icon: Log },
+        { id: 'home', label: t('nav.search'), icon: Search },
+        { id: 'history', label: t('nav.journal'), icon: Log },
         { id: 'lab', label: t('nav.lab'), icon: Labs },
+        { id: 'plan', label: t('nav.plan'), icon: Bookmark },
         { id: 'settings', label: t('nav.settings'), icon: Gear },
-        { id: 'account', label: t('nav.account'), icon: Account },
     ];
 
     // The funding vote is a page of Settings, but while ballots are open it
@@ -419,7 +485,9 @@ export const useAppNavigation = (user: any) => {
     return {
         currentView,
         /** The tab to light: the view's own, or the one it was opened under. */
-        currentTab: openedUnder ? tabForView(openedUnder) : tabForView(currentView),
+        currentTab: litTab(openedUnder ? tabForView(openedUnder) : tabForView(currentView)),
+        /** What the page on screen is of (a medicine, a kind), when it is one of many. */
+        viewParam,
         transitionDirection,
         move,
         handleViewChange,
