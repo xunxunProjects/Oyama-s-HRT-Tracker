@@ -554,7 +554,6 @@ const Onboarding: React.FC<OnboardingProps> = ({
                             setAddingPlan(false);
                         }}
                         onCancel={() => setAddingPlan(false)}
-                        aboveNav={false}
                     />
                 </div>
             </div>

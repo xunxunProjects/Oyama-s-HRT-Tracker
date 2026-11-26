@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SwapLabel } from '../components/StableLabel';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Check, Eye, EyeOff, Link, Busy, LockKeyhole, Trash } from '../components/icons';
+import { Check, Eye, EyeOff, Link, LockKeyhole, Trash } from '../components/icons';
 import { CopyTick } from '../components/Tick';
 import Switch from '../components/Switch';
 import { DoseEvent, HRTMode, SimulationResult } from '../../logic';
@@ -34,6 +34,7 @@ import { SelectChevron } from '../components/CustomSelect';
 import { buildSharedDosageSnapshot } from '../services/shareSnapshot';
 import { copyText } from '../utils/clipboard';
 import { MAX_SHARE_EXPIRY_YEAR, isLongLivedShare, shareExpiryProblem } from '../../shareExpiry';
+import { WaitMark, Waiting } from '../components/Waiting';
 
 interface ShareSettingsProps {
     onBack: () => void;
@@ -446,7 +447,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                 disabled={submitting || !events.length || passwordBlocked}
                                 className="btn-primary min-w-[8.5rem]"
                             >
-                                {submitting ? <Busy size={15} className="animate-spin" /> : <Link size={15} />}
+                                {submitting ? <WaitMark size={15} /> : <Link size={15} />}
                                 {submitting ? copy.creating : copy.create}
                             </button>
                         </div>
@@ -460,9 +461,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                         <p className="mt-2 text-sm leading-relaxed text-muted">{copy.legacyHint}</p>
                     )}
                     {sharesLoading ? (
-                        <div className="flex items-center gap-2 py-4 text-sm text-muted">
-                            <Busy size={14} className="animate-spin" /> {copy.loading}
-                        </div>
+                        <Waiting className="py-4">{copy.loading}</Waiting>
                     ) : shares.length === 0 ? (
                         <p className="py-4 text-sm text-muted">{copy.noneActive}</p>
                     ) : (
@@ -499,11 +498,7 @@ const ShareSettings: React.FC<ShareSettingsProps> = ({
                                         disabled={revokingId === share.id}
                                         className="-mr-2 inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-2 text-sm font-medium text-[var(--danger)] hover:bg-[var(--surface-hover)] disabled:opacity-50 "
                                     >
-                                        {revokingId === share.id ? (
-                                            <Busy size={14} className="animate-spin" />
-                                        ) : (
-                                            <Trash size={14} />
-                                        )}
+                                        {revokingId === share.id ? <WaitMark size={14} /> : <Trash size={14} />}
                                         {copy.revoke}
                                     </button>
                                 </div>

@@ -1,14 +1,10 @@
-import { Busy } from './icons';
-import { useTranslation } from '../contexts/LanguageContext';
+import Waiting from './Waiting';
 
-const PageLoading = () => {
-    const { t } = useTranslation();
-    return (
-        <div role="status" className="flex-1 flex items-center justify-center p-8 text-[var(--text-muted)]">
-            <Busy size={24} className="animate-spin" aria-hidden="true" />
-            <span className="sr-only">{t('common.loading')}</span>
-        </div>
-    );
-};
+/** A page whose code is still on its way: the waiting rail across the column. */
+const PageLoading = () => (
+    <div className="flex-1 flex items-center justify-center p-8">
+        <Waiting wide className="w-full max-w-xs" />
+    </div>
+);
 
 export default PageLoading;

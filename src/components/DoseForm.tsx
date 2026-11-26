@@ -19,7 +19,7 @@ import {
     sublingualThetaFromHold as thetaFromHold,
     sublingualHoldFromTheta as holdFromTheta,
 } from '../../logic';
-import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, Check, Warning, External, Busy } from './icons';
+import { Save, Trash, Info, Bookmark, BookmarkPlus, Close, Check, Warning, External } from './icons';
 import { DoseAdvisoryLine } from './DoseAdvisory';
 import { LOCALE_MAP } from '../utils/helpers';
 import { doseOf, drugLabel, productNames } from '../utils/regimenText';
@@ -36,6 +36,7 @@ import GuideFold from './dose_form/GuideFold';
 import Tick from './Tick';
 import { cleanDoseMG } from '../utils/cleanDose';
 import { inertWhen } from '../utils/inert';
+import { WaitMark } from './Waiting';
 
 export interface DoseTemplate {
     id: string;
@@ -1388,7 +1389,7 @@ const DoseForm: React.FC<DoseFormProps> = ({
                         className="btn-primary flex-1 sm:flex-none sm:min-w-[88px]"
                     >
                         {isSaving ? (
-                            <Busy size={16} className="animate-spin" />
+                            <WaitMark size={16} />
                         ) : (
                             <>
                                 <Save size={16} />

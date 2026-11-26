@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
-import { Monitor, Phone, Busy, Logout, Close, Alert, Retry } from '../components/icons';
+import { Monitor, Phone, Logout, Close, Alert, Retry } from '../components/icons';
 import { authService, Session } from '../services/auth';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useDialog } from '../contexts/DialogContext';
 import { SettingsIconBox, maskIpAddress, settingsMuted, settingsOn } from '../components/SettingsListItem';
 import { formatRelative } from '../utils/helpers';
+import { WaitMark, Waiting } from '../components/Waiting';
 
 interface SessionsPageProps {
     token: string;
@@ -115,9 +116,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
 
             <div className={`${PAGE_COLUMN} mt-2`}>
                 {loading ? (
-                    <div className="flex justify-center py-16">
-                        <Busy className={`animate-spin ${settingsMuted}`} size={20} />
-                    </div>
+                    <Waiting className="justify-center py-16" />
                 ) : failed ? (
                     <div className="flex flex-col items-center gap-2 py-14 text-center">
                         <p role="alert" className={`flex items-center gap-1.5 text-sm ${settingsMuted}`}>
@@ -177,7 +176,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                                             className={`tap-target shrink-0 mt-1 p-1.5 rounded-md ${settingsMuted} hover:text-[var(--text)] hover:bg-[var(--surface-hover)] disabled:opacity-40 transition-colors`}
                                         >
                                             {isTerminating ? (
-                                                <Busy size={15} strokeWidth={1.5} className="animate-spin" />
+                                                <WaitMark size={15} />
                                             ) : (
                                                 <Close size={15} strokeWidth={1.5} />
                                             )}
@@ -195,11 +194,7 @@ const SessionsPage: React.FC<SessionsPageProps> = ({ token, onBack }) => {
                         disabled={terminating === 'others'}
                         className={`w-full flex items-center justify-center gap-1 py-3.5 mt-2 text-sm font-medium ${settingsMuted} hover:text-[var(--text)] disabled:opacity-50 transition-colors`}
                     >
-                        {terminating === 'others' ? (
-                            <Busy size={15} strokeWidth={1.5} className="animate-spin" />
-                        ) : (
-                            <Logout size={15} strokeWidth={1.5} />
-                        )}
+                        {terminating === 'others' ? <WaitMark size={15} /> : <Logout size={15} strokeWidth={1.5} />}
                         {t('account.sessions_terminate_others')}
                     </button>
                 )}

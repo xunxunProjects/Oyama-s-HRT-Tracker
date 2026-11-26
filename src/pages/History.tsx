@@ -17,6 +17,7 @@ import type { DoseTemplate } from '../components/DoseForm';
 import { QuickDose } from '../components/dose_form/QuickDoseButtons';
 import { DoseDayGroup } from '../hooks/useAppData';
 import { inertWhen } from '../utils/inert';
+import { useNavHeldAway } from '../components/BottomNav';
 
 const MAX_BATCH_COUNT = 365;
 
@@ -143,6 +144,10 @@ const History: React.FC<HistoryProps> = ({
     // Batch delete: selection mode over the list.
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // While a dose is being logged or changed, the phone's bottom bar steps
+    // aside: the form ends in Save, and the bar sat right over it.
+    useNavHeldAway(isQuickAddOpen || (editingId !== null && !selectMode));
 
     // Doses later than now fold into one section above the list, closed. A
     // batch add writes up to a year ahead, and newest first, those weeks that

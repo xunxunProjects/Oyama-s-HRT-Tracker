@@ -29,6 +29,7 @@ import { AddCancelLabel, SwapLabel } from '../components/StableLabel';
 import { CopyTick } from '../components/Tick';
 import { scrollParent } from '../utils/scrollParent';
 import { inertWhen } from '../utils/inert';
+import { useNavHeldAway } from '../components/BottomNav';
 
 interface LabProps {
     t: (key: string) => string;
@@ -64,6 +65,9 @@ const Lab: React.FC<LabProps> = ({
 }) => {
     const [editingLabId, setEditingLabId] = useState<string | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
+    // The phone's bottom bar steps aside while a result is being entered or
+    // changed, so the form's Save isn't under it.
+    useNavHeldAway(isQuickAddLabOpen || editingLabId !== null);
     const { isTransmasc } = useHRTMode();
 
     // The add form always opens at the top of the page, so when Add is

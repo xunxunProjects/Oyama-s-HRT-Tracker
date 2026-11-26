@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Segmented from '../components/Segmented';
-import AnimatedNumber from '../components/AnimatedNumber';
+import Odometer from '../components/Odometer';
 import ModelChart from '../components/ModelChart';
 import { useTranslation } from '../contexts/LanguageContext';
 import { useHRTMode } from '../contexts/HRTModeContext';
@@ -336,7 +336,7 @@ const ModelGuide: React.FC<{ onBack: () => void; weight: number }> = ({ onBack, 
                                     label: t('model_doc.peak'),
                                     value: (
                                         <>
-                                            <AnimatedNumber value={round(single.peak)} decimals={0} />
+                                            <Odometer value={round(single.peak)} decimals={0} places={3} />
                                             <span className="ms-1 text-sm text-[var(--text-muted)]">{unit}</span>
                                         </>
                                     ),
@@ -401,7 +401,7 @@ const ModelGuide: React.FC<{ onBack: () => void; weight: number }> = ({ onBack, 
                                     label: t('model_doc.mean'),
                                     value: (
                                         <>
-                                            <AnimatedNumber value={round(repeated.mean)} decimals={0} />
+                                            <Odometer value={round(repeated.mean)} decimals={0} places={3} />
                                             <span className="ms-1 text-sm text-[var(--text-muted)]">{unit}</span>
                                         </>
                                     ),

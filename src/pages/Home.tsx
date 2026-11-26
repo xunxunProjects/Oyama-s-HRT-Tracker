@@ -14,7 +14,7 @@ import {
 import ResultChart from '../components/ResultChart';
 import DoseHeatmap from '../components/DoseHeatmap';
 import DoseAdvisoryNotice from '../components/DoseAdvisory';
-import RollingNumber from '../components/RollingNumber';
+import Odometer from '../components/Odometer';
 import LevelRail from '../components/LevelRail';
 import PixelCat from '../components/PixelCat';
 import DoseDoodle from '../components/DoseDoodle';
@@ -270,10 +270,11 @@ const Home: React.FC<HomeProps> = ({
                           {primary.value > 0 ? (
                               <>
                                   <span className={on}>
-                                      <RollingNumber
+                                      <Odometer
                                           key={primary.unit}
                                           value={primary.value}
                                           decimals={primary.decimals}
+                                          places={4 + primary.decimals}
                                       />
                                   </span>
                                   <span className={`text-sm font-normal tracking-normal ${muted}`}>{primary.unit}</span>
@@ -285,10 +286,11 @@ const Home: React.FC<HomeProps> = ({
                       {companion && companion.value > 0 && (
                           <p className={`mt-1 text-xs tabular-nums ${muted}`}>
                               {companion.label}{' '}
-                              <RollingNumber
+                              <Odometer
                                   key={companion.unit}
                                   value={companion.value}
                                   decimals={companion.decimals}
+                                  places={3 + companion.decimals}
                               />{' '}
                               {companion.unit}
                           </p>
@@ -435,10 +437,11 @@ const Home: React.FC<HomeProps> = ({
                                                 {primary.value > 0 ? (
                                                     <>
                                                         <span className={on}>
-                                                            <RollingNumber
+                                                            <Odometer
                                                                 key={primary.unit}
                                                                 value={primary.value}
                                                                 decimals={primary.decimals}
+                                                                places={4 + primary.decimals}
                                                             />
                                                         </span>
                                                         <span
@@ -488,10 +491,11 @@ const Home: React.FC<HomeProps> = ({
                                                     {companion.value > 0 ? (
                                                         <>
                                                             <span className={on}>
-                                                                <RollingNumber
+                                                                <Odometer
                                                                     key={companion.unit}
                                                                     value={companion.value}
                                                                     decimals={companion.decimals}
+                                                                    places={3 + companion.decimals}
                                                                 />
                                                             </span>
                                                             <span
@@ -594,10 +598,18 @@ const Home: React.FC<HomeProps> = ({
                                                 >
                                                     {fillNodes(t(sentence), {
                                                         verb: t(`plan.verb.${item.route}`),
-                                                        done: st.kind === 'due' && <RollingNumber value={st.done} />,
-                                                        total: st.kind === 'due' && <RollingNumber value={st.total} />,
+                                                        done: st.kind === 'due' && (
+                                                            <Odometer value={st.done} decimals={0} places={1} />
+                                                        ),
+                                                        total: st.kind === 'due' && (
+                                                            <Odometer value={st.total} decimals={0} places={1} />
+                                                        ),
                                                         left: st.kind === 'due' && (
-                                                            <RollingNumber value={st.total - st.done} />
+                                                            <Odometer
+                                                                value={st.total - st.done}
+                                                                decimals={0}
+                                                                places={1}
+                                                            />
                                                         ),
                                                         day:
                                                             st.kind === 'rest' ? (
@@ -693,8 +705,10 @@ const Home: React.FC<HomeProps> = ({
                                                 : fillNodes(t('supplies.running_low'), {
                                                       name,
                                                       n: (
-                                                          <RollingNumber
+                                                          <Odometer
                                                               value={Math.max(0, Math.round((runOutH - nowH) / 24))}
+                                                              decimals={0}
+                                                              places={1}
                                                           />
                                                       ),
                                                       date: (
