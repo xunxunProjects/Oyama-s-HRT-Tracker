@@ -1,4 +1,5 @@
 import type { ViewKey } from './useAppNavigation';
+import { pathFor } from './viewPaths';
 
 /**
  * The app's own entries in the browser's session history, so the system Back
@@ -17,6 +18,10 @@ import type { ViewKey } from './useAppNavigation';
  *
  * Settings on a phone has a level of its own between the list and a page:
  * the category drilled into, recorded in `cat` on its own entry.
+ *
+ * Every entry carries its page's own address (viewPaths.ts), so the address
+ * bar names the page, a reload stays on it, and the entries under it are
+ * still there for Back.
  */
 export interface NavEntry {
     hrtNav: 1;
@@ -43,13 +48,22 @@ let shownDepth = navDepth();
 let leftDepth = shownDepth;
 
 export const pushNavEntry = (view: ViewKey, depth: number, cat?: string, under?: ViewKey) => {
-    window.history.pushState({ hrtNav: 1, view, depth, cat, under } satisfies NavEntry, '');
+    window.history.pushState({ hrtNav: 1, view, depth, cat, under } satisfies NavEntry, '', pathFor(view, cat));
     shownDepth = depth;
 };
 
-export const replaceNavEntry = (view: ViewKey, depth: number, cat?: string) => {
-    window.history.replaceState({ hrtNav: 1, view, depth, cat } satisfies NavEntry, '');
+export const replaceNavEntry = (view: ViewKey, depth: number, cat?: string, under?: ViewKey) => {
+    window.history.replaceState({ hrtNav: 1, view, depth, cat, under } satisfies NavEntry, '', pathFor(view, cat));
     shownDepth = depth;
+};
+
+/**
+ * Changes only the address of the entry on screen, keeping what it holds: a
+ * wide window's Settings or Admin switching tabs, which is no level of its own
+ * for Back but should still be what a reload or a copied link opens.
+ */
+export const replaceNavPath = (path: string) => {
+    if (window.location.pathname !== path) window.history.replaceState(window.history.state, '', path);
 };
 
 /** The depth of the entry the latest popstate moved away from. */

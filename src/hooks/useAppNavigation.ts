@@ -14,6 +14,7 @@ import {
     stepBack,
     TAB_RESELECT,
 } from './navHistory';
+import { parsePath } from './viewPaths';
 
 export type ViewKey =
     | 'home'
@@ -157,6 +158,17 @@ type Direction = 'forward' | 'backward';
 const directionOf = (from: ViewKey, to: ViewKey): Direction =>
     VIEW_ORDER.indexOf(to) >= VIEW_ORDER.indexOf(from) ? 'forward' : 'backward';
 
+/**
+ * Where the app opens: the page a reload left on screen (its history entry
+ * survives the reload), else the page the address names (a link, a bookmark,
+ * an address typed in), else the Overview.
+ */
+const openingPage = (): { view: ViewKey; under?: ViewKey } => {
+    const entry = readNavEntry();
+    if (entry) return { view: entry.view, under: entry.under };
+    return { view: parsePath(window.location.pathname)?.view ?? 'home' };
+};
+
 /** A sidebar destination. The badge is the quiet dot that marks an open vote. */
 interface NavItem {
     id: string;
@@ -169,13 +181,14 @@ export const useAppNavigation = (user: any) => {
     const { t } = useTranslation();
 
     // --- State ---
-    const [currentView, setCurrentView] = useState<ViewKey>('home');
+    const [opening] = useState(openingPage);
+    const [currentView, setCurrentView] = useState<ViewKey>(opening.view);
     const [transitionDirection, setTransitionDirection] = useState<Direction>('forward');
     // How the view on screen arrived, for browsers that animate it themselves
     // only on the page's side (see motion/viewMove.ts).
     const [move, setMove] = useState<ViewMove>('fade');
     // Set while a page from ALSO_UNDER is open under the other tab.
-    const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(null);
+    const [openedUnder, setOpenedUnder] = useState<ViewKey | null>(opening.under ?? null);
     // Whether the funding vote still has an open door in the sidebar. It
     // closes on its own at the deadline, without waiting for a reload.
     const [voteOpen, setVoteOpen] = useState(() => voteStatusAt(Math.floor(Date.now() / 1000)) !== 'closed');
@@ -187,7 +200,7 @@ export const useAppNavigation = (user: any) => {
     }, []);
     const mainScrollRef = useRef<HTMLDivElement>(null);
     // The view on screen, for the history listener, which outlives renders.
-    const viewRef = useRef<ViewKey>('home');
+    const viewRef = useRef<ViewKey>(opening.view);
     // How far down each page was when it was last left, and whether the move
     // under way goes back to one, so Back lands where you were, not at the top.
     const scrollTops = useRef<Partial<Record<ViewKey, number>>>({});
@@ -297,19 +310,33 @@ export const useAppNavigation = (user: any) => {
     };
 
     // --- Effects ---
-    // The app always opens on the Overview. A reload part-way down a stack
-    // finds its pages still in history, so step back to the base entry rather
-    // than leave them there for Back to replay. `pending` also keeps this from
-    // stepping back twice should it ever run twice (a remount, or Strict Mode).
+    // Opening the app. A reload finds its own entry still in history, with the
+    // pages it was opened from under it, so it stays where it was; the entry
+    // only has its address brought up to date when it names another page (one
+    // written before pages had addresses reads `/`). An address on its own (a link, a bookmark) gets
+    // the stack a tap would have built: its tab as the base entry, and the
+    // page above it, so Back from it lands on the tab. Anything else opens the
+    // Overview, at `/`. Running twice (a remount, or Strict Mode) finds the
+    // entries it wrote the first time and leaves them be.
     useEffect(() => {
-        if (pending.current) return;
-        const depth = navDepth();
-        if (depth > 0) {
-            pending.current = { view: 'home', direction: 'forward', how: 'none' };
-            stepBack(depth);
-        } else {
-            replaceNavEntry('home', 0);
+        const entry = readNavEntry();
+        if (entry) {
+            // A wide window's Settings keeps its tab in the address alone
+            // (/settings/data on the Settings entry), so only an address that
+            // names another page is rewritten.
+            if (parsePath(window.location.pathname)?.view !== entry.view)
+                replaceNavEntry(entry.view, entry.depth, entry.cat, entry.under);
+            return;
         }
+        const named = parsePath(window.location.pathname);
+        if (!named) {
+            replaceNavEntry('home', 0);
+            return;
+        }
+        const tab = tabForView(named.view);
+        replaceNavEntry(tab, 0);
+        if (tab !== named.view) pushNavEntry(named.view, 1);
+        else if (named.cat) pushNavEntry(tab, 1, named.cat);
     }, []);
 
     useEffect(() => {
