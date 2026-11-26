@@ -1,3 +1,4 @@
+import { Route } from '../types';
 import type { DoseEvent, LabResult, SimulationResult } from '../types';
 import { getDoseAdvisory } from '../advisories';
 import { convertToNgDl, convertToPgMl, isT_LabUnit } from '../labs';
@@ -193,14 +194,17 @@ export function extremeLabAlerts(
 
 /**
  * Counts local calendar days that contain a dose high enough to trip the
- * existing dose advisory. Each day is evaluated in isolation so a single high
- * dose is one day, not the whole 14-day advisory window.
+ * existing dose advisory. Daily doses are judged from that day alone so one
+ * large dose is one day, not the whole 14-day advisory window. An injection's
+ * weekly rate needs cadence from earlier doses, so a day with an injection is
+ * also judged against the injection history up to that day.
  */
 export function countHighDoseDays(events: DoseEvent[], nowH: number, windowDays = 90): number {
     if (windowDays <= 0) return 0;
 
     const fromH = nowH - windowDays * 24;
     const byDay = new Map<string, DoseEvent[]>();
+    const injections = events.filter((event) => event.route === Route.injection);
     for (const event of events) {
         if (event.timeH < fromH || event.timeH > nowH) continue;
         const key = localDayKey(event.timeH);
@@ -212,7 +216,14 @@ export function countHighDoseDays(events: DoseEvent[], nowH: number, windowDays 
     let count = 0;
     for (const dayEvents of byDay.values()) {
         const dayNowH = Math.max(...dayEvents.map((event) => event.timeH));
-        if (getDoseAdvisory(dayEvents, dayNowH)) count++;
+        if (getDoseAdvisory(dayEvents, dayNowH)) {
+            count++;
+        } else if (
+            dayEvents.some((event) => event.route === Route.injection) &&
+            getDoseAdvisory(injections, dayNowH)
+        ) {
+            count++;
+        }
     }
     return count;
 }

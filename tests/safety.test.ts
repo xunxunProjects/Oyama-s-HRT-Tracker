@@ -44,6 +44,15 @@ const dose = (id: string, timeH: number, doseMG: number): DoseEvent => ({
     extras: {},
 });
 
+const injection = (id: string, timeH: number, doseMG: number, ester: Ester): DoseEvent => ({
+    id,
+    route: Route.injection,
+    ester,
+    doseMG,
+    timeH,
+    extras: {},
+});
+
 describe('severityFor', () => {
     it('keeps notice strict and high/critical inclusive for E2', () => {
         expect(severityFor(300, SAFETY_THRESHOLDS.e2)).toBeNull();
@@ -158,6 +167,20 @@ describe('countHighDoseDays', () => {
     it('counts 40 daily high-dose days', () => {
         const events = Array.from({ length: 40 }, (_, i) => dose(`d${i}`, NOW_H - i * 24, 20));
         expect(countHighDoseDays(events, NOW_H, 90)).toBe(40);
+    });
+
+    it('counts excessive injected estradiol cadence with every single dose below the guard', () => {
+        const events = Array.from({ length: 8 }, (_, i) =>
+            injection(`ev${i}`, NOW_H - i * 7 * 24, 25, Ester.EV),
+        );
+        expect(countHighDoseDays(events, NOW_H, 90)).toBe(7);
+    });
+
+    it('counts excessive injected testosterone cadence', () => {
+        const events = Array.from({ length: 8 }, (_, i) =>
+            injection(`tc${i}`, NOW_H - i * 7 * 24, 300, Ester.TC),
+        );
+        expect(countHighDoseDays(events, NOW_H, 90)).toBe(7);
     });
 });
 
