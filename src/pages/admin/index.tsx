@@ -4,7 +4,16 @@ import PageHeader, { PAGE_COLUMN } from '../../components/PageHeader';
 import PasswordPrompt from '../../components/PasswordPrompt';
 import { settingsSection, rowBleed } from '../../components/SettingsListItem';
 import Tabs, { useSwitchAnimation } from '../../components/Tabs';
-import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../../hooks/navHistory';
+import {
+    navDepth,
+    pushNavEntry,
+    readNavEntry,
+    replaceNavEntry,
+    replaceNavPath,
+    stepBack,
+    TAB_RESELECT,
+} from '../../hooks/navHistory';
+import { parsePath, pathFor } from '../../hooks/viewPaths';
 import { setAdminReauthPrompt } from '../../services/adminReauth';
 import { useDonation, DonationPanel } from './DonationPanel';
 import { NoticePanel, useNotice } from './NoticePanel';
@@ -23,6 +32,12 @@ import { UsersPanel, useUsers } from './users';
  */
 
 let _savedCat: AdminCat = 'users';
+
+// The category the address names (/admin/notice), as in Settings.
+const catFromAddress = (): AdminCat | undefined => {
+    const named = parsePath(window.location.pathname);
+    return named?.view === 'admin' ? CAT_ORDER.find(c => c === named.cat) : undefined;
+};
 
 // As in Settings: the category drilled into on a phone lives in the history
 // entry pushed on the way in, so Back from it lands on the list and leaving
@@ -47,7 +62,7 @@ const CATS: { id: AdminCat; label: string; Icon: React.ElementType; hint: string
 
 const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const wide = useWide();
-    const [cat, setCat] = useState<AdminCat>(_savedCat);
+    const [cat, setCat] = useState<AdminCat>(() => catFromAddress() ?? _savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
 
     const [reauthOpen, setReauthOpen] = useState(false);
@@ -81,6 +96,7 @@ const Admin: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     const selectCat = (c: AdminCat) => {
         _savedCat = c;
         setCat(c);
+        replaceNavPath(pathFor('admin', c));
     };
 
     const enterMobileCat = (c: AdminCat) => {

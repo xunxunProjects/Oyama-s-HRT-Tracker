@@ -11,7 +11,16 @@ import PageHeader, { PAGE_COLUMN } from '../components/PageHeader';
 import Tabs, { useSwitchAnimation } from '../components/Tabs';
 import { fill } from '../utils/regimenText';
 import { voteStatusAt } from '../../communityVote';
-import { navDepth, pushNavEntry, readNavEntry, replaceNavEntry, stepBack, TAB_RESELECT } from '../hooks/navHistory';
+import {
+    navDepth,
+    pushNavEntry,
+    readNavEntry,
+    replaceNavEntry,
+    replaceNavPath,
+    stepBack,
+    TAB_RESELECT,
+} from '../hooks/navHistory';
+import { parsePath, pathFor } from '../hooks/viewPaths';
 
 interface SettingsProps {
     t: (key: string) => string;
@@ -128,6 +137,13 @@ const MOBILE_ORDER: readonly MobileView[] = ['list', ...CAT_ORDER];
 
 let _savedCat: SettingsCat = 'general';
 
+// The category the address names (/settings/data), for a reload or a link:
+// on a wide window that is the tab to open on.
+const catFromAddress = (): SettingsCat | undefined => {
+    const named = parsePath(window.location.pathname);
+    return named?.view === 'settings' ? CAT_ORDER.find(c => c === named.cat) : undefined;
+};
+
 // On a phone the category drilled into is a level of its own for the system
 // Back, so it lives in the history entry pushed on the way in (navHistory)
 // rather than in a module variable. That also makes it last as long as it
@@ -195,7 +211,7 @@ const Settings: React.FC<SettingsProps> = ({
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
-    const [cat, setCat] = useState<SettingsCat>(_savedCat);
+    const [cat, setCat] = useState<SettingsCat>(() => catFromAddress() ?? _savedCat);
     const [mobileView, setMobileView] = useState<MobileView>(mobileViewFromHistory);
     // A hint, not a countdown: the row is read when Settings opens. The page
     // behind it always has the live status.
@@ -204,6 +220,8 @@ const Settings: React.FC<SettingsProps> = ({
     const selectCat = (c: SettingsCat) => {
         _savedCat = c;
         setCat(c);
+        // A tab, not a level: the address follows it without a history entry.
+        replaceNavPath(pathFor('settings', c));
     };
 
     const enterMobileCat = (c: SettingsCat) => {
