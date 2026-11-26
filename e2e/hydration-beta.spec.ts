@@ -59,6 +59,6 @@ test.describe('hydration beta settings', () => {
         await page.goForward();
 
         await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
-        await expect(page.getByRole('heading', { name: 'Hydration Beta' })).toBeHidden();
+        await expect(page.getByRole('button', { name: /Hydration Beta.*Back/ })).toBeHidden();
     });
 });
