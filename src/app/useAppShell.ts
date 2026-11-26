@@ -8,6 +8,7 @@ import { useAppData } from '../hooks/useAppData';
 import { useAppNavigation } from '../hooks/useAppNavigation';
 import { useCloudSync } from '../hooks/useCloudSync';
 import { useLiveShareSync } from '../hooks/useLiveShareSync';
+import { useSafetyAlerts } from '../hooks/useSafetyAlerts';
 import { shouldShowOnboarding } from '../pages/Onboarding';
 import { useAccountFlows } from './useAccountFlows';
 import { useAppPreferences } from './useAppPreferences';
@@ -32,6 +33,12 @@ export const useAppShell = () => {
     const preferences = useAppPreferences(setLang);
     const data = useAppData(showDialog, { withPrediction: preferences.showPrediction });
     const nowH = data.currentTime.getTime() / 3600000;
+    const safety = useSafetyAlerts({
+        events: data.events,
+        simulation: data.simulation,
+        labResults: data.labResults,
+        providedNowH: nowH,
+    });
 
     useLiveShareSync({
         authToken: token,
@@ -67,6 +74,7 @@ export const useAppShell = () => {
         authToken: token,
         devMode: preferences.devMode,
         ageBeta: data.ageBeta,
+        physiologyBeta: data.physiologyBeta,
         currentView: navigation.currentView,
         onLeave: navigation.handleViewChange,
     });
@@ -146,6 +154,7 @@ export const useAppShell = () => {
         nowH,
         handleEditEvent,
         syncState,
+        safety,
     };
 };
 

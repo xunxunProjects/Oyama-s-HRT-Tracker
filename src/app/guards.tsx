@@ -5,6 +5,7 @@ interface ViewGoneGuardOptions {
     authToken: string | null;
     devMode: boolean;
     ageBeta: boolean;
+    physiologyBeta: boolean;
     currentView: ViewKey;
     onLeave: (view: ViewKey) => void;
 }
@@ -19,6 +20,7 @@ export const isViewGone = ({
     authToken,
     devMode,
     ageBeta,
+    physiologyBeta,
     currentView,
 }: Omit<ViewGoneGuardOptions, 'onLeave'>): boolean =>
     (!authToken &&
@@ -30,7 +32,8 @@ export const isViewGone = ({
         (currentView === 'settings-milk-tea' ||
             currentView === 'settings-cat-states' ||
             currentView === 'settings-simulator')) ||
-    (!ageBeta && currentView === 'settings-age');
+    (!ageBeta && currentView === 'settings-age') ||
+    (!physiologyBeta && currentView === 'settings-hydration');
 
 export const useViewGoneGuard = (options: ViewGoneGuardOptions) => {
     const gone = isViewGone(options);

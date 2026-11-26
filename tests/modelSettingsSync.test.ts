@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applySyncedStateToStorage, buildExportPayloadFromStorage, nsFor } from '../src/utils/backupState';
+import {
+    applySyncedStateToStorage,
+    buildExportPayloadFromStorage,
+    nsFor,
+    sanitizeModelSettings,
+} from '../src/utils/backupState';
 import { hasContent, mergeSyncStates, normalizeSyncState } from '../src/utils/syncMerge';
 import { MemoryStorage } from './memoryStorage';
 
@@ -32,6 +37,7 @@ describe('model settings sync', () => {
             calibrationMethod: 'bayes',
             calibrationHistoryMode: 'retrospective',
             ageBeta: true,
+            physiologyBeta: false,
         });
 
         const storage = device({});
@@ -83,5 +89,45 @@ describe('model settings sync', () => {
         const applied = applySyncedStateToStorage(storage, 'u1', 'transfem', state);
         expect(applied.modelSettings).toBeUndefined();
         expect(storage.getItem(nsFor('u1', 'cal-method'))).toBe('off');
+    });
+
+    it('defaults physiologyBeta to false for legacy settings', () => {
+        const legacy = {
+            calibrationMethod: 'off' as const,
+            calibrationHistoryMode: 'forward' as const,
+            ageBeta: false,
+        };
+        expect(sanitizeModelSettings(legacy)?.physiologyBeta).toBe(false);
+        expect(stateOf(device({ 'cal-method': 'off' })).modelSettings?.physiologyBeta).toBe(false);
+    });
+
+    it('round-trips physiologyBeta through storage and export', () => {
+        const phone = stateOf(device({ 'physiology-beta': 'true', 'model-settings-at': '500' }));
+        expect(phone.modelSettings?.physiologyBeta).toBe(true);
+
+        const storage = device({});
+        const applied = applySyncedStateToStorage(storage, 'u1', 'transfem', phone);
+        expect(applied.modelSettings?.physiologyBeta).toBe(true);
+        expect(storage.getItem(nsFor('u1', 'physiology-beta'))).toBe('true');
+        expect(stateOf(storage).modelSettings?.physiologyBeta).toBe(true);
+    });
+
+    it('the newer device wins for physiologyBeta', () => {
+        const older = stateOf(device({ 'physiology-beta': 'false', 'model-settings-at': '100' }));
+        const newer = stateOf(device({ 'physiology-beta': 'true', 'model-settings-at': '200' }));
+        expect(mergeSyncStates(older, newer).merged.modelSettings?.physiologyBeta).toBe(true);
+        expect(mergeSyncStates(newer, older).merged.modelSettings?.physiologyBeta).toBe(true);
+    });
+
+    it('rejects a non-boolean physiologyBeta from the cloud', () => {
+        const state = stateOf(device({ 'cal-method': 'off' }));
+        state.modelSettings = {
+            calibrationMethod: 'off',
+            calibrationHistoryMode: 'forward',
+            ageBeta: true,
+            physiologyBeta: 'yes' as unknown as boolean,
+        };
+        state.modelSettingsUpdatedAt = 900;
+        expect(applySyncedStateToStorage(new MemoryStorage(), 'u1', 'transfem', state).modelSettings).toBeUndefined();
     });
 });

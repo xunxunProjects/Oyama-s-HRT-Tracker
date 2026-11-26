@@ -5,6 +5,41 @@
 export type { DoseAdvisory, HormoneLevelAdvisory } from './advisories';
 export { getDoseAdvisory, getHormoneLevelAdvisory } from './advisories';
 
+export type { SafetyAlert, SafetyAlertKind, SafetySeverity } from './features/safety';
+export {
+    SAFETY_THRESHOLDS,
+    severityFor,
+    cumulativeSeverity,
+    localDayKey,
+    extremeSimulationAlerts,
+    extremeLabAlerts,
+    countHighDoseDays,
+    cumulativeDoseAlert,
+    evaluateSafety,
+    selectModalAlert,
+    highestSeverity,
+} from './features/safety';
+
+export type {
+    HydrationDeltaSummary,
+    HydrationParams,
+    HydrationState,
+    UrineColorLevel,
+    WaterIntake,
+} from './features/hydration';
+export {
+    CUP_ML,
+    DEFAULT_HYDRATION_PARAMS,
+    DEFAULT_HYDRATION_STATE,
+    applyPlasmaVolume,
+    estimatePlasmaVolumeL,
+    estimateTbwL,
+    hydrationDelta,
+    hydrationDeltaSummary,
+    plasmaVolumeRatio,
+    urineColorOffset,
+} from './features/hydration';
+
 export { computeCalibration } from './calibration/index';
 
 export type { EKFState } from './calibration/legacy';

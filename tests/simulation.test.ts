@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    DEFAULT_HYDRATION_STATE,
     Ester,
     ExtraKey,
     Route,
@@ -250,5 +251,73 @@ describe('interpolateConcentration_*', () => {
     it('T interpolation copes with an older result that has no T array', () => {
         const legacy = { ...sim, concNGdL_T: undefined } as unknown as SimulationResult;
         expect(interpolateConcentration_T(legacy, 15)).toBeNull();
+    });
+});
+
+describe('runSimulation: optional hydration outputs', () => {
+    const events = () => [dose(Route.oral, Ester.E2, 2, NOW_H - 10)];
+
+    it('omits all hydration fields when the option is absent', () => {
+        const sim = runSimulation(events(), BW)!;
+        expect(sim.pvRatio).toBeUndefined();
+        expect(sim.concPGmL_E2_pv).toBeUndefined();
+        expect(sim.concNGdL_T_pv).toBeUndefined();
+    });
+
+    it('returns baseline arrays of grid length with an empty hydration state', () => {
+        const sim = runSimulation(events(), BW, null, {
+            hydration: DEFAULT_HYDRATION_STATE,
+        })!;
+
+        expect(sim.pvRatio).toHaveLength(sim.timeH.length);
+        expect(sim.concPGmL_E2_pv).toHaveLength(sim.timeH.length);
+        expect(sim.concNGdL_T_pv).toHaveLength(sim.timeH.length);
+        expect(sim.pvRatio!.every((value) => value === 1)).toBe(true);
+    });
+
+    it('keeps the E2 curve identical at alpha zero even with water logged', () => {
+        const hydration = {
+            ...DEFAULT_HYDRATION_STATE,
+            water: [{ id: 'cup', timeH: NOW_H, cups: 2 }],
+            alpha: 0,
+        };
+        const sim = runSimulation(events(), BW, null, { hydration })!;
+        expect(sim.concPGmL_E2_pv).toEqual(sim.concPGmL_E2);
+    });
+
+    it('applies full dilution at alpha one without changing the model curve', () => {
+        const hydration = {
+            ...DEFAULT_HYDRATION_STATE,
+            water: [{ id: 'cup', timeH: NOW_H, cups: 2 }],
+            alpha: 1,
+        };
+        const base = runSimulation(events(), BW)!;
+        const sim = runSimulation(events(), BW, null, { hydration })!;
+
+        for (let i = 0; i < sim.timeH.length; i++) {
+            expect(sim.pvRatio![i]).toBeGreaterThanOrEqual(0.7);
+            expect(sim.pvRatio![i]).toBeLessThanOrEqual(1.5);
+            expect(sim.concPGmL_E2_pv![i]).toBeCloseTo(
+                sim.concPGmL_E2[i] / sim.pvRatio![i],
+                9,
+            );
+        }
+        expect(sim.concPGmL_E2).toEqual(base.concPGmL_E2);
+        expect(sim.auc).toBe(base.auc);
+    });
+
+    it('does not mutate the events or the hydration state', () => {
+        const eventList = events();
+        const eventCopy = JSON.parse(JSON.stringify(eventList));
+        const hydration = {
+            ...DEFAULT_HYDRATION_STATE,
+            water: [{ id: 'cup', timeH: NOW_H, cups: 1 }],
+        };
+        const hydrationCopy = JSON.parse(JSON.stringify(hydration));
+
+        runSimulation(eventList, BW, null, { hydration });
+
+        expect(eventList).toEqual(eventCopy);
+        expect(hydration).toEqual(hydrationCopy);
     });
 });

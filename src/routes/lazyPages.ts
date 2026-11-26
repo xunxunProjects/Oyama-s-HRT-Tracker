@@ -23,6 +23,7 @@ export const LanguageSettings = lazyWithRetry(() => import('../pages/LanguageSet
 export const AppearanceSettings = lazyWithRetry(() => import('../pages/AppearanceSettings'), 'AppearanceSettings');
 export const WeightSettings = lazyWithRetry(() => import('../pages/WeightSettings'), 'WeightSettings');
 export const AgeSettings = lazyWithRetry(() => import('../pages/AgeSettings'), 'AgeSettings');
+export const HydrationSettings = lazyWithRetry(() => import('../pages/HydrationSettings'), 'HydrationSettings');
 export const ExportSettings = lazyWithRetry(() => import('../pages/ExportSettings'), 'ExportSettings');
 export const ImportSettings = lazyWithRetry(() => import('../pages/ImportSettings'), 'ImportSettings');
 export const TransparencySettings = lazyWithRetry(

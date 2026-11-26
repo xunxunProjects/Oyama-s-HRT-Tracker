@@ -3,6 +3,7 @@ import BottomNav from '../components/BottomNav';
 import JsDependencyNotice from '../components/JsDependencyNotice';
 import PageLoading from '../components/PageLoading';
 import PasswordPrompt from '../components/PasswordPrompt';
+import SafetyAlertModal from '../components/SafetyAlertModal';
 import Sidebar from '../components/Sidebar';
 import SiteNoticeBanner from '../components/SiteNotice';
 import UpdatePrompt from '../components/UpdatePrompt';
@@ -31,6 +32,7 @@ import {
     History,
     HRTModeSettings,
     HrtSecurityPage,
+    HydrationSettings,
     ImportSettings,
     Lab,
     LanguageSettings,
@@ -93,6 +95,15 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
         setCalibrationHistoryMode,
         ageBeta,
         setAgeBeta,
+        safety,
+        physiologyBeta,
+        setPhysiologyBeta,
+        hydration,
+        addWater,
+        removeWater,
+        setUrineColor,
+        setBodyFatPercent,
+        setHydrationAlpha,
         calibration,
         currentLevel,
         currentCPA,
@@ -271,6 +282,13 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 supplyLeadDays={supplyLeadDays}
                                 onNavigateToCommunityVote={() => openCommunityVote('home')}
                                 onCommunityVoteSignIn={() => signInForCommunityVote('home')}
+                                safetyAlerts={safety.alerts}
+                                onOpenSafetySettings={() => handleViewChange('settings')}
+                                safetyReminderEnabled={safety.enabled}
+                                physiologyBeta={physiologyBeta}
+                                hydration={hydration}
+                                addWater={addWater}
+                                onOpenHydrationSettings={() => handleViewChange('settings-hydration')}
                             />
                         )}
 
@@ -329,6 +347,7 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 onDeleteTemplate={deleteTemplate}
                                 groupedEvents={groupedEvents}
                                 events={events}
+                                safetyReminderEnabled={safety.enabled}
                                 quickDoses={quickDoses}
                                 onAddQuickDose={addQuickDose}
                                 onDeleteQuickDose={deleteQuickDose}
@@ -393,6 +412,9 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 birthYear={birthYear}
                                 ageBeta={ageBeta}
                                 setAgeBeta={setAgeBeta}
+                                physiologyBeta={physiologyBeta}
+                                setPhysiologyBeta={setPhysiologyBeta}
+                                onNavigateToHydration={() => handleViewChange('settings-hydration')}
                                 pkParams={pkParams}
                                 onNavigateToPKParams={() => handleViewChange('pk-params')}
                                 onNavigateToPKDemos={() => handleViewChange('settings-pk-viz')}
@@ -420,6 +442,8 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 onNavigateToAdmin={() => handleViewChange('admin')}
                                 onNavigateToSupplies={() => handleViewChange('supplies')}
                                 supplyCount={supplies.length}
+                                safetyReminderEnabled={safety.enabled}
+                                setSafetyReminderEnabled={safety.setEnabled}
                             />
                         )}
 
@@ -457,6 +481,20 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                                 birthYear={birthYear}
                                 onSave={setBirthYear}
                                 onBack={() => handleViewChange('settings')}
+                            />
+                        )}
+
+                        {currentView === 'settings-hydration' && physiologyBeta && (
+                            <HydrationSettings
+                                weight={weight}
+                                hydration={hydration}
+                                addWater={addWater}
+                                removeWater={removeWater}
+                                setUrineColor={setUrineColor}
+                                setBodyFatPercent={setBodyFatPercent}
+                                setHydrationAlpha={setHydrationAlpha}
+                                onBack={() => handleViewChange('settings')}
+                                t={t}
                             />
                         )}
 
@@ -627,6 +665,18 @@ const AppViews = ({ shell }: { shell: AppShell }) => {
                 onClose={closePasswordPrompt}
                 onConfirm={handlePasswordSubmit}
             />
+
+            {safety.activeAlert && (
+                <SafetyAlertModal
+                    alert={safety.activeAlert}
+                    t={t}
+                    onClose={safety.dismiss}
+                    onOpenSettings={() => {
+                        safety.dismiss();
+                        handleViewChange('settings');
+                    }}
+                />
+            )}
         </div>
     );
 };

@@ -33,6 +33,9 @@ interface SettingsProps {
     birthYear: number | null;
     ageBeta: boolean;
     setAgeBeta: (v: boolean) => void;
+    physiologyBeta: boolean;
+    setPhysiologyBeta: (v: boolean) => void;
+    onNavigateToHydration: () => void;
     pkParams: PKCustomParams | null;
     onNavigateToPKParams: () => void;
     onNavigateToHRTMode: () => void;
@@ -58,6 +61,8 @@ interface SettingsProps {
     onNavigateToAdmin: () => void;
     onNavigateToSupplies: () => void;
     supplyCount: number;
+    safetyReminderEnabled: boolean;
+    setSafetyReminderEnabled: (v: boolean) => void;
 }
 
 type SettingsCat = 'general' | 'data' | 'about';
@@ -167,6 +172,9 @@ const Settings: React.FC<SettingsProps> = ({
     birthYear,
     ageBeta,
     setAgeBeta,
+    physiologyBeta,
+    setPhysiologyBeta,
+    onNavigateToHydration,
     pkParams,
     onNavigateToPKParams,
     onNavigateToHRTMode,
@@ -192,6 +200,8 @@ const Settings: React.FC<SettingsProps> = ({
     onNavigateToAdmin,
     onNavigateToSupplies,
     supplyCount,
+    safetyReminderEnabled,
+    setSafetyReminderEnabled,
 }) => {
     const { mode } = useHRTMode();
     const { showCats, setShowCats, catStyle, setCatStyle } = usePixelCats();
@@ -319,6 +329,32 @@ const Settings: React.FC<SettingsProps> = ({
                     }
                     onClick={() => navTo(onNavigateToPKParams, 'general')}
                 />
+            </div>
+
+            <SectionHeading title={t('settings.section.safety')} />
+            <div className={section}>
+                <SwitchRow
+                    label={t('settings.safety_reminder')}
+                    desc={t('settings.safety_reminder_desc')}
+                    checked={safetyReminderEnabled}
+                    onChange={setSafetyReminderEnabled}
+                />
+            </div>
+
+            <SectionHeading title={t('settings.section.physiology')} />
+            <div className={section}>
+                <SwitchRow
+                    label={t('settings.physiology_beta')}
+                    desc={t('settings.physiology_beta_desc')}
+                    checked={physiologyBeta}
+                    onChange={setPhysiologyBeta}
+                />
+                {physiologyBeta && (
+                    <NavRow
+                        label={t('settings.hydration')}
+                        onClick={() => navTo(onNavigateToHydration, 'general')}
+                    />
+                )}
             </div>
 
             {/* What's left on hand. */}
