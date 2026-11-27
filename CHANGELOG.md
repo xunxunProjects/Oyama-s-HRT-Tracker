@@ -8,8 +8,12 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
-## Unreleased — 1.6 rc line (`release/1.6-rc`)
+## 1.6.0-rc.5 — stabilization checkpoint (`release/1.6-rc`)
 
+- Current stage rc5 (`1.6.0-rc.5`). rc6 – rc9 are reserved for another
+  maintainer's feature work, so rc10 final review is deferred.
+  当前阶段为 rc5（`1.6.0-rc.5`）。rc6 – rc9 留给另一位维护者添加功能，
+  因此 rc10 最终审查推迟。
 - Stabilization work after `1.6.0-rc.1`: rate limits fail closed with a local
   fallback, raw HRT pairing is throttled and swept, trusted-IP password
   rechecks and share-key requests use the password bucket, WebAuthn rejects

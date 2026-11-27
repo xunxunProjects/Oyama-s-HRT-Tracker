@@ -82,9 +82,11 @@ claim it passed.
 - A release is built from a tag, with CI, and published. Do not retag or move a
   release.
 - During the 1.6 cycle, `main` stays at 1.5.4 and the rc worktree carries
-  `1.6.0-rc.1`. The rc stages are tags (`v1.6-rc1` … `v1.6-rc10`) on the single
-  `release/1.6-rc` branch, not ten branches. These tags deliberately do not
-  match the release workflow, so they do not publish.
+  `1.6.0-rc.5`. Current stage rc5: rc6 – rc9 are reserved for the cooperating
+  maintainer's new feature work, and rc10 final review is deferred. The rc
+  stages are tags (`v1.6-rc1` … `v1.6-rc10`) on the single `release/1.6-rc`
+  branch, not ten branches. These tags deliberately do not match the release
+  workflow, so they do not publish.
 - RC version bumps are manual and supported: update the six version fields
   (`package.json`, both `version` fields in `package-lock.json`,
   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and the app package in
@@ -101,8 +103,10 @@ claim it passed.
 - rc1 is audit-only: produce evidence and a ranked findings file at
   `docs/superpowers/2026-11-27-1.6-rc1-audit.md`; fix nothing in rc1.
 - rc2 – rc5 are the fix windows for technical debt, AI-generated cruft, and
-  security findings. rc6 – rc9 slow down and leave room for a cooperating
-  maintainer's new work. rc10 is the final review before release.
+  security findings. Current stage rc5 means those fixes are recorded; rc6 –
+  rc9 slow down and leave room for a cooperating maintainer's new feature
+  work. rc10 is the final review before release, deferred until that work
+  lands.
 - Never deploy the rc branch to a production instance.
 - The maintainer's untracked `.planning/`, `.playwright-mcp/`, and
   `docs/superpowers/plans|specs/` files are off limits; a root checkout with
