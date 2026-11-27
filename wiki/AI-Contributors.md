@@ -82,10 +82,11 @@ claim it passed.
 - A release is built from a tag, with CI, and published. Do not retag or move a
   release.
 - During the 1.6 cycle, `main` stays at 1.5.4 and the rc worktree carries
-  `1.6.0-rc.5`. Current stage rc5: rc6 – rc9 are reserved for the cooperating
+  `1.6.0-rc.5.5`. Current stage rc5.5: rc6 – rc9 are reserved for the cooperating
   maintainer's new feature work, and rc10 final review is deferred. The rc
-  stages are tags (`v1.6-rc1` … `v1.6-rc10`) on the single `release/1.6-rc`
-  branch, not ten branches. These tags deliberately do not match the release
+  stages are tags (`v1.6-rc1` … `v1.6-rc10`) on `release/1.6-rc`, not ten
+  branches; `release/1.6-rc5.5` is a checkpoint branch off that rc line. These
+  tags deliberately do not match the release
   workflow, so they do not publish.
 - RC version bumps are manual and supported: update the six version fields
   (`package.json`, both `version` fields in `package-lock.json`,

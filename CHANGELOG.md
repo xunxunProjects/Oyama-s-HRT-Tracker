@@ -8,11 +8,19 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.6.0-rc.5.5 — rc checkpoint (`release/1.6-rc5.5` → `release/1.6-rc`)
+
+- Current stage rc5.5 (`1.6.0-rc.5.5`). This is a checkpoint on the rc line:
+  rc5 stabilization stays intact and the remaining literature-gap fixes
+  continue gradually on the rc line. Nothing here lands on `main`.
+  当前阶段为 rc5.5（`1.6.0-rc.5.5`）。这是 rc 线上的检查点：保留 rc5 的
+  稳定化成果，其余文献缺口在 rc 线上逐步完善，不会进入 `main`。
+
 ## 1.6.0-rc.5 — stabilization checkpoint (`release/1.6-rc`)
 
-- Current stage rc5 (`1.6.0-rc.5`). rc6 – rc9 are reserved for another
+- At rc5 (`1.6.0-rc.5`). rc6 – rc9 are reserved for another
   maintainer's feature work, so rc10 final review is deferred.
-  当前阶段为 rc5（`1.6.0-rc.5`）。rc6 – rc9 留给另一位维护者添加功能，
+  rc5 阶段（`1.6.0-rc.5`）。rc6 – rc9 留给另一位维护者添加功能，
   因此 rc10 最终审查推迟。
 - Stabilization work after `1.6.0-rc.1`: rate limits fail closed with a local
   fallback, raw HRT pairing is throttled and swept, trusted-IP password
