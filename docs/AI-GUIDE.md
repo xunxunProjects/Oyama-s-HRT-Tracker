@@ -262,7 +262,7 @@ handlers live in `src/server/routes/` and the root server modules listed below.
 | Tool           | protected `/api/tool/v1/*`                                                                                 | `toolApi.ts`                        |
 | F2F            | `/api/f2f/*`                                                                                               | `f2f.ts`                            |
 | HRT pairing    | `/api/hrt/*`                                                                                               | `hrtPairing.ts`                     |
-| Scheduled      | `scheduled()` every 6 hours: expired sessions, shares, pairing rows, F2F sweep                             | `worker.ts`                         |
+| Scheduled      | `scheduled()` every 6 hours: expired sessions, shares, WebAuthn challenges, F2F sweep                      | `worker.ts`                         |
 
 ### Shared server helpers
 
@@ -302,16 +302,16 @@ handlers live in `src/server/routes/` and the root server modules listed below.
 The implementation lives in `src/domain/`; `logic.ts` only re-exports the public
 surface for existing imports and tests. Key concepts:
 
-| Concept             | Meaning                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| `Route`             | `sublingual`, `injection`, `patchApply`, `patchRemove`, `gel`, `oral`.                  |
-| `Ester`             | Estradiol esters, CPA, unmodelled adjunct drugs, and testosterone esters.               |
-| `DoseEvent`         | A dose at a time in hours, with route, ester, amount, and route-specific extras.        |
-| `SimulationResult`  | Sampled concentration curves for E2, CPA, and T.                                        |
-| `LabResult`         | A measured level with unit, assay, and time.                                            |
-| `CalibrationMethod` | `off`, `ekf`, `ou_kalman`, `mipd`, `bayes`; calibration fits E2 to the user's own labs. |
-| `PKCustomParams`    | User-editable model parameters, validated by `sanitizePKParams`.                        |
-| `UNMODELLED_DRUGS`  | Adjunct drugs with no level model; they appear in logs but draw no curve.               |
+| Concept             | Meaning                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Route`             | `sublingual`, `injection`, `patchApply`, `patchRemove`, `gel`, `oral`, `nasal`, `sc`, `pellet`.                                                                   |
+| `Ester`             | Estradiol esters, CPA, unmodelled adjunct drugs, and testosterone esters.                                                                                         |
+| `DoseEvent`         | A dose at a time in hours, with route, ester, amount, and route-specific extras.                                                                                  |
+| `SimulationResult`  | Sampled concentration curves plus optional SHBG/HPG/body-composition/lipid/VTE/transmasculine fields; the exact default shape is under review in audit F-09/F-10. |
+| `LabResult`         | A measured level with unit, assay, and time.                                                                                                                      |
+| `CalibrationMethod` | `off`, `ekf`, `ou_kalman`, `mipd`, `bayes`; calibration fits E2 to the user's own labs.                                                                           |
+| `PKCustomParams`    | User-editable model parameters, validated by `sanitizePKParams`.                                                                                                  |
+| `UNMODELLED_DRUGS`  | Adjunct drugs with no level model; they appear in logs but draw no curve.                                                                                         |
 
 Rules for model changes:
 
@@ -611,8 +611,9 @@ Rules for agents working on this train:
    Every fix carries its test and the verification command in the audit file.
 3. Do not pull rc6 – rc9 work forward without a maintainer's explicit call.
    Slow stages are a feature, not dead time.
-4. Deployments use 1.5.4 from `main` until the final 1.6 release. Never deploy
-   the rc branch to a production instance.
+4. Deployments use the latest published stable tag (`v1.5.3` today; `main` is
+   1.5.4 but has no 1.5.4 tag) until the final 1.6 release. Never deploy `main`
+   or the rc branch to a production instance.
 5. `scripts/set_version.py` only accepts `X.Y.Z` in `--update` mode and
    `.github/workflows/release.yml` only matches `vX.Y.Z` tags. The rc tag names
    (`v1.6-rc1` … `v1.6-rc10`) are intentionally outside that pattern, so rc

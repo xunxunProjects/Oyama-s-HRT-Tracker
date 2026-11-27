@@ -66,15 +66,9 @@ route that is accidentally pulled back into the app shell fails the check.
 Run `npm run test:e2e` when the change affects a user flow or the API. It needs
 the built app and a free local port; set `E2E_API_PORT=8788` if 8787 is busy.
 
-Tools (when the change touches `tools/`):
-
-```bash
-cmake -S tools/hrt-tool -B tools/hrt-tool/build
-cmake --build tools/hrt-tool/build -j"$(nproc)"
-ctest --test-dir tools/hrt-tool/build --output-on-failure
-cd tools/hrt-cold && go test ./...
-cd tools/hrt-f2f && go test ./...
-```
+Native tool sources are not in this repository at HEAD (`tools/` does not
+exist). If a change adds them, use the tool's own README for its build and test
+commands.
 
 Run the cross-build or sanitizer job when the change affects platform code.
 If a check cannot run in your environment, say so in the pull request; do not
@@ -82,8 +76,8 @@ claim it passed.
 
 ## Version policy
 
-- Production deployments use the latest stable release tag (`v1.5.4`), never
-  `main` and never an rc tag.
+- Production deployments use the latest published stable tag (`v1.5.3` today;
+  `main` is 1.5.4 but has no 1.5.4 tag), never `main` and never an rc tag.
 - Security researchers use the latest commit; say which commit you tested.
 - A release is built from a tag, with CI, and published. Do not retag or move a
   release.
