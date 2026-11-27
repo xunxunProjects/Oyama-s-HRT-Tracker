@@ -137,6 +137,24 @@ describe.skipIf(!hasSqlite)('share encryption is mandatory', () => {
         expect(updated).not.toBe(original);
     });
 
+    it('uses the shared password bucket for live-share key rotation', async () => {
+        for (let index = 0; index < 10; index += 1) {
+            const attempt = await call('/api/shares/keys', {
+                method: 'PUT',
+                token,
+                body: { password: 'wrong password here', keys: [] },
+            });
+            expect(attempt.response.status).toBe(401);
+        }
+        const denied = await call('/api/shares/keys', {
+            method: 'PUT',
+            token,
+            body: { password: PASSWORD, keys: [] },
+        });
+        expect(denied.response.status).toBe(429);
+        expect(denied.body?.code).toBe('RATE_LIMITED');
+    });
+
     it('refuses and scrubs a legacy plaintext row', async () => {
         const tokenHash = await hashToken(RAW_TOKEN);
         const now = Math.floor(Date.now() / 1000);

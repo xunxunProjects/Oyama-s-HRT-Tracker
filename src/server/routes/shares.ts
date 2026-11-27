@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
-import { checkRateLimit } from '../rateLimit';
+import { checkRateLimit, passwordCheckAllowed } from '../rateLimit';
 import { getClientIP, MAX_JSON_BODY_BYTES, readSmallBody, readSmallJsonBody } from '../../../requestInput';
 import { sha256Hex } from '../../../workerUtil';
 import { isJsonObject, sanitizeEncryptedShareSnapshot } from '../../../shareSnapshotSchema';
@@ -260,7 +260,9 @@ export async function handleSharesRoute(
     // seals them comes from the password, so without this every live
     // link would stop updating from the owner's devices.
     if (url.pathname === '/api/shares/keys' && request.method === 'PUT') {
-        if (!(await checkRateLimit(env, `share-live-update:${userId}`, 30))) {
+        // This route rechecks the owner password, so use the shared password
+        // bucket rather than the 30/min live-update quota.
+        if (!(await passwordCheckAllowed(env, userId))) {
             return shareJson({ code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' }, 429, {
                 'Retry-After': '60',
             });
