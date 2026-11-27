@@ -51,6 +51,11 @@ jobs:
         # Covers the web app and worker.ts alike.
         run: npx tsc --noEmit
 
+      - name: Security test prerequisites
+        # Several security suites skip themselves without node:sqlite or
+        # openssl; fail here instead of reporting a misleading green run.
+        run: node scripts/checkTestPrerequisites.mjs
+
       - name: Unit tests
         # Dose and concentration math in logic.ts; see tests/.
         run: npm test
