@@ -196,7 +196,7 @@ export async function verifyPasskeyAssertion(
     const valid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, cryptoKey, rawSig, sigBase);
     if (!valid) throw new Error('Signature invalid');
 
-    if (storedCounter > 0 && signCount > 0 && storedCounter >= signCount)
+    if (storedCounter > 0 && signCount <= storedCounter)
         throw new Error('Counter not advancing (cloned authenticator?)');
     return signCount;
 }
