@@ -3,7 +3,7 @@
 > **Audience:** AI coding agents and the people directing them. Read this file
 > before changing code.
 >
-> **Scope:** Oyama's HRT Tracker v1.6.0-rc.5 (release-candidate line, current
+> **Scope:** Oyama's HRT Tracker v1.6.0-rc.5.5 (release-candidate line, current
 > stage rc5), 2026-11-27. The stable line stays at 1.5.4 on `main`. If this
 > file disagrees with the code, the code wins.
 > Update this file in the same pull request when a change makes part of it
@@ -610,7 +610,7 @@ The ten stages are tags on that one branch, not ten branches:
 | rc6 – rc9 | Deliberately slow. Leave room for a cooperating maintainer's new work; avoid unrelated churn. |
 | rc10      | Final review only. Any merge into `main` requires explicit maintainer agreement, never auto.  |
 
-Current stage rc5 (`1.6.0-rc.5`). rc6 – rc9 are on hold for the cooperating
+Current stage rc5.5 (`1.6.0-rc.5.5`). rc6 – rc9 are on hold for the cooperating
 maintainer's new feature work; the rc10 final review is deferred until that
 work lands. Do not call this line final while feature work is still expected.
 

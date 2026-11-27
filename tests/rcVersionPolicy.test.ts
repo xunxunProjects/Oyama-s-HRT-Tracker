@@ -18,7 +18,7 @@ describe('RC version policy', () => {
         expect(guide).toMatch(/Do not "fix" this/i);
     });
 
-    it('marks the current stage as rc5 while feature work is still pending', () => {
+    it('marks the current stage as rc5.5 while feature work is still pending', () => {
         for (const path of [
             'package.json',
             'package-lock.json',
@@ -29,11 +29,11 @@ describe('RC version policy', () => {
             'wiki/AI-Contributors.md',
             'CHANGELOG.md',
         ]) {
-            expect(read(path), path).toContain('1.6.0-rc.5');
+            expect(read(path), path).toContain('1.6.0-rc.5.5');
         }
-        expect(read('docs/AI-GUIDE.md')).toMatch(/current stage rc5/i);
-        expect(read('wiki/AI-Contributors.md')).toMatch(/current stage rc5/i);
-        expect(read('docs/superpowers/2026-11-27-1.6-rc1-audit.md')).toMatch(/current stage rc5/i);
+        expect(read('docs/AI-GUIDE.md')).toMatch(/current stage rc5\.5/i);
+        expect(read('wiki/AI-Contributors.md')).toMatch(/current stage rc5\.5/i);
+        expect(read('docs/superpowers/2026-11-27-1.6-rc1-audit.md')).toMatch(/current stage rc5\.5/i);
         expect(read('docs/superpowers/2026-11-27-1.6-rc1-audit.md')).toMatch(/rc10 final review deferred/i);
     });
 });
