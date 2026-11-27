@@ -81,39 +81,39 @@ Important product constraints:
 
 ### Source and entry points
 
-| Path                      | Responsibility                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.tsx`               | Browser entry; mounts `src/App.tsx`.                                                                                                        |
-| `src/App.tsx`             | Provider composition only; mounts `src/app/AppContent`.                                                                                     |
-| `src/app/`                | App shell: providers, data/navigation composition, view switch, guards, preferences, account flows, backup actions, plan logging.           |
-| `src/pages/`              | One file or subfolder per screen. Admin lives in `src/pages/admin/`.                                                                        |
-| `src/components/`         | Shared UI, charts, forms, icons, and doodles.                                                                                               |
-| `src/contexts/`           | React context: auth, language, HRT mode, dialogs, pixel cat.                                                                                |
-| `src/hooks/`              | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                                                      |
-| `src/routes/lazyPages.ts` | Lazy page imports and chunk-retry wrapper; Home, Onboarding, and PublicShare stay eager.                                                    |
-| `src/services/`           | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                                                |
-| `src/utils/`              | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities.                        |
-| `src/utils/sync/`         | Tombstone, normalize, merge, and fingerprint helpers for cloud revisions; `syncMerge.ts` is a façade.                                       |
-| `src/i18n/`               | `locales/` (one UI-string pack per language), `translations.ts` (aggregator), `share.ts` (share-page copy), `locale.ts` (locale detection). |
-| `src/data/developers.ts`  | Credits data for the developer wall.                                                                                                        |
-| `src/constants.ts`        | Shared UI constants.                                                                                                                        |
-| `logic.ts`                | Compatibility façade for the pharmacokinetic model; implementation lives in `src/domain/`.                                                  |
-| `src/domain/`             | Dose/lab types, PK modules, calibration, simulation, hormone features, advisory rules, crypto, and model validation.                        |
-| `shbg.ts`                 | Optional estradiol protein binding and dynamic SHBG turnover model. Pure, not wired into the UI; off by default.                            |
-| `worker.ts`               | Worker entry: static assets, middleware, auth gate, rate limits, `/api/*` dispatch, D1/R2 access, and `scheduled()`.                        |
-| `src/server/routes/`      | Route handlers for public, auth, user profile, sessions, 2FA, passkeys, shares, content, and admin APIs.                                    |
-| `toolApi.ts`              | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                                          |
-| `contentStore.ts`         | Content-row SQL shared by the website and tool APIs, including retention pruning.                                                           |
-| `backupPolicy.ts`         | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                                                 |
-| `passwordStrength.ts`     | Password length/byte limits and strength estimate. Shared by client and Worker.                                                             |
-| `shareExpiry.ts`          | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                                        |
-| `shareSnapshotSchema.ts`  | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.                                  |
-| `f2f.ts`                  | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                                                   |
-| `hrtPairing.ts`           | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                                              |
-| `requestInput.ts`         | Client-address extraction and bounded JSON body reads for the Worker.                                                                       |
-| `workerUtil.ts`           | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                                            |
-| `communityVote.ts`        | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.                                   |
-| `communityVoteServer.ts`  | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                                                 |
+| Path                      | Responsibility                                                                                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.tsx`               | Browser entry; mounts `src/App.tsx`.                                                                                                            |
+| `src/App.tsx`             | Provider composition only; mounts `src/app/AppContent`.                                                                                         |
+| `src/app/`                | App shell: providers, data/navigation composition, view switch, guards, preferences, account flows, backup actions, plan logging.               |
+| `src/pages/`              | One file or subfolder per screen. Admin lives in `src/pages/admin/`.                                                                            |
+| `src/components/`         | Shared UI, charts, forms, icons, and doodles.                                                                                                   |
+| `src/contexts/`           | React context: auth, language, HRT mode, dialogs, pixel cat.                                                                                    |
+| `src/hooks/`              | App data, cloud sync, navigation, live-share sync, and small UI hooks.                                                                          |
+| `src/routes/lazyPages.ts` | Lazy page imports and chunk-retry wrapper; Home, Onboarding, and PublicShare stay eager.                                                        |
+| `src/services/`           | API client and client-side auth, backup, sharing, crypto, export, F2F, HRT, and admin calls.                                                    |
+| `src/utils/`              | Shared helpers: backup import/export/merge, plan/regimen, crypto compatibility, units, formatting, and UI utilities.                            |
+| `src/utils/sync/`         | Tombstone, normalize, merge, and fingerprint helpers for cloud revisions; `syncMerge.ts` is a façade.                                           |
+| `src/i18n/`               | `locales/` (one UI-string pack per language), `translations.ts` (aggregator), `share.ts` (share-page copy), `locale.ts` (locale detection).     |
+| `src/data/developers.ts`  | Credits data for the developer wall.                                                                                                            |
+| `src/constants.ts`        | Shared UI constants.                                                                                                                            |
+| `logic.ts`                | Compatibility façade for the pharmacokinetic model; implementation lives in `src/domain/`.                                                      |
+| `src/domain/`             | Dose/lab types, PK modules, calibration, simulation, hormone features, advisory rules, crypto, and model validation.                            |
+| `shbg.ts`                 | constant binding used by the default simulation (free/bioavailable E2) plus an opt-in dynamic SHBG turnover model; pure, not wired into the UI. |
+| `worker.ts`               | Worker entry: static assets, middleware, auth gate, rate limits, `/api/*` dispatch, D1/R2 access, and `scheduled()`.                            |
+| `src/server/routes/`      | Route handlers for public, auth, user profile, sessions, 2FA, passkeys, shares, content, and admin APIs.                                        |
+| `toolApi.ts`              | `/api/tool/v1/*` contract: version, login fields, snapshot routes.                                                                              |
+| `contentStore.ts`         | Content-row SQL shared by the website and tool APIs, including retention pruning.                                                               |
+| `backupPolicy.ts`         | Cloud-backup size cap, revision count, and retention horizons. Shared by client and Worker.                                                     |
+| `passwordStrength.ts`     | Password length/byte limits and strength estimate. Shared by client and Worker.                                                                 |
+| `shareExpiry.ts`          | Share-link expiry bounds and the security-window check. Shared by client and Worker.                                                            |
+| `shareSnapshotSchema.ts`  | Rebuilds and validates a share snapshot from untrusted input; used before encryption and after decryption.                                      |
+| `f2f.ts`                  | F2F cohort registry: seats, member keys, CLI codes, and escrow envelopes.                                                                       |
+| `hrtPairing.ts`           | `hrt://` pairing, device fingerprints, holds, and trusted IPs.                                                                                  |
+| `requestInput.ts`         | Client-address extraction and bounded JSON body reads for the Worker.                                                                           |
+| `workerUtil.ts`           | JSON/error responses, SHA-256, hex and base64, and constant-time compare for the Worker modules.                                                |
+| `communityVote.ts`        | Community funding vote constants, option ids, window, and tally rules. Shared by the page and the Worker.                                       |
+| `communityVoteServer.ts`  | `/api/vote` handlers: public tally, account eligibility, and ballot upsert.                                                                     |
 
 ### Supporting directories
 

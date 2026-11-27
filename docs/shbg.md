@@ -1,10 +1,13 @@
-# SHBG and free estradiol (optional model)
+# SHBG and free estradiol (dynamic layer is opt-in)
 
-Status: opt-in post-processing model. `logic.ts` default simulation output is
-unchanged. `runSimulation()` gains an optional `swallowedE2` flag (default
-`false`) used only by this model. Nothing in the UI enables it. Callers use
-`freeEstradiol()` explicitly with `{ shbg: 'constant' | 'dynamic' }`. The
-validation harness is in `tests/shbgScenarios.test.ts`.
+Status: the default `runSimulation()` result already includes constant-binding
+free and bioavailable estradiol curves (`concPGmL_E2_free`,
+`concPGmL_E2_bioavailable`) and free testosterone (`concNGdL_T_free`), computed
+at baseline SHBG/albumin. The time-varying SHBG layer described here is opt-in:
+call `freeEstradiol()` explicitly with `{ shbg: 'dynamic' }` (or `'constant'` to
+recompute the baseline case). `runSimulation()` gains an optional `swallowedE2`
+flag (default `false`) used only by this layer. Nothing in the UI enables the
+dynamic model. The validation harness is in `tests/shbgScenarios.test.ts`.
 
 ## 1. What the existing model does
 
@@ -16,11 +19,11 @@ $$
 C_{\mathrm{E2,total}}(t) = \frac{A_{\mathrm{central}}(t)}{V_d}.
 $$
 
-There is no SHBG, albumin, free fraction, or protein-binding calculation in
-the default output. `e2_kClear` is an apparent first-order elimination
-constant applied to the whole central amount. The model therefore implies a
-constant free fraction; the new layer below makes that assumption explicit
-and, optionally, dynamic.
+The default output now includes protein binding at fixed baseline SHBG and
+albumin, so free and bioavailable E2 are derived from total E2 without changing
+the elimination model. `e2_kClear` is still an apparent first-order elimination
+constant applied to the whole central amount. The optional layer below makes
+the baseline assumption explicit and, when requested, lets SHBG vary over time.
 
 ## 2. Model
 

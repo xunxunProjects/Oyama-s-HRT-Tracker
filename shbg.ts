@@ -15,7 +15,8 @@
  *     baseline (the constant free fraction the app has always implied) or
  *     following shbgCurve.
  *
- * Nothing in the app calls it. The dynamic model stays off until timed lab
+ * `runSimulation` uses the constant-binding path for the default free and
+ * bioavailable E2 curves. The dynamic model stays opt-in until timed lab
  * results with SHBG, ideally with measured free estradiol, show it predicts
  * better than a constant free fraction (§18 has the scenarios, the
  * sensitivity analysis and the decision rule).
