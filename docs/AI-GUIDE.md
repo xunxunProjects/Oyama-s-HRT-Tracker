@@ -320,8 +320,12 @@ Rules for model changes:
   code) in the pull request and explain how the curve changes.
 - Do not tune parameters to make a test pass. Tests are evidence, not a target.
 - `tests/literature.test.ts` contains `it.fails` cases for known gaps against
-  published data. When a change fixes one, the test starts failing; change
-  `it.fails` to `it`.
+  published data. Every expected-failure test must carry a
+  `TRACKED GAP F11-0N (important)` annotation next to it and be listed in the
+  rc1 audit (`docs/superpowers/2026-11-27-1.6-rc1-audit.md`); the guard test
+  `tests/literatureGapTracking.test.ts` keeps the two in sync. When a change
+  fixes one, the test starts failing; change `it.fails` to `it` and remove the
+  tracked-gap entry only after the fix has its own cited evidence.
 - The model is shared by the UI and tests. Keep it free of React and DOM code.
 
 ### Browser storage and backups

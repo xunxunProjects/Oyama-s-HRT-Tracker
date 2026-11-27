@@ -330,6 +330,7 @@ describe('known gaps against published data', () => {
     // 5-minute hold) peaks at about 128 pg/mL. Whether the standard tier's θ
     // should come down is left to timed lab results: the RIA studies in the
     // sublingual block above sit as far above this model as Doll sits below.
+    // TRACKED GAP F11-01 (important)
     it.fails('sublingual 1 mg (standard tier) peaks within 2x of 144 pg/mL', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.sublingual, Ester.E2, 1, t0, { [ExtraKey.sublingualTier]: 2 })], BW)!;
@@ -349,6 +350,7 @@ describe('known gaps against published data', () => {
         expect(interpolateConcentration_E2(sim, t0 + 8)!).toBeGreaterThan(interpolateConcentration_E2(sim, t0 + 6)!);
     });
 
+    // TRACKED GAP F11-02 (important)
     it.fails('oral 1 mg reaches 35 pg/mL at 8 h, within 1.5x', () => {
         const t0 = NOW_H - 100;
         const sim = runSimulation([dose(Route.oral, Ester.E2, 1, t0)], BW)!;
@@ -360,6 +362,7 @@ describe('known gaps against published data', () => {
     // https://medlibrary.org/lib/rx/meds/angeliq-1/page/5/
     // The model peaks at about 8.5 h, as the estrone pool delays every
     // swallowed dose; see OralPK.kE1Pool for why it is left there.
+    // TRACKED GAP F11-03 (important)
     it.fails('oral 1 mg/day at steady state peaks within 4 h of the dose', () => {
         const sim = runSimulation(regimen(Route.oral, Ester.E2, 1, 24, 30, NOW_H - 24), BW)!;
         const { tmaxH } = scan(sim, interpolateConcentration_E2, NOW_H - 24, NOW_H, 0.1);
@@ -375,6 +378,7 @@ describe('known gaps against published data', () => {
     // 758 ng/dL, where the model peaks at about 1430 ng/dL at 2 days), so
     // injection route does not explain it. The depot rates are left as they are
     // until timed lab results show which way to move them.
+    // TRACKED GAP F11-04 (important)
     it.fails('enanthate weekly at the Xyosted mean dose troughs within 1.5x of the label Cmin of 436 ng/dL', () => {
         const { lo } = tRange(regimen(Route.injection, Ester.TE, 73.9, 168, 20, NOW_H - 168), NOW_H - 168, NOW_H);
         within(lo, 436);
