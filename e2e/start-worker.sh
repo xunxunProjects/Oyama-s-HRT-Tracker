@@ -18,5 +18,10 @@ secret="${E2E_JWT_SECRET:-${seconds}$(openssl rand -hex 32)}"
 # Keep this default in sync with e2e/apiOrigin.ts.
 PORT="${E2E_API_PORT:-8787}"
 
+if command -v ss >/dev/null 2>&1 && ss -H -ltn "( sport = :$PORT )" | grep -q .; then
+    printf 'E2E API port %s is already in use; set E2E_API_PORT=<free port> and retry.\n' "$PORT" >&2
+    exit 1
+fi
+
 npx wrangler d1 migrations apply hrt-tracker-prod --local --persist-to "$PERSIST" >/dev/null
 exec npx wrangler dev --local --port "$PORT" --persist-to "$PERSIST" --var "JWT_SECRET:$secret"

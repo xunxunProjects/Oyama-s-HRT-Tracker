@@ -59,6 +59,7 @@ COPY --from=build /app/src/server/storageBudget.ts ./src/server/storageBudget.ts
 COPY --from=build /app/src/server/webauthn.ts ./src/server/webauthn.ts
 COPY --from=build /app/src/server/webauthnChallenges.ts ./src/server/webauthnChallenges.ts
 COPY --from=build /app/src/server/validation.ts ./src/server/validation.ts
+COPY --from=build /app/src/utils/username.ts ./src/utils/username.ts
 COPY --from=build /app/src/server/userHelpers.ts ./src/server/userHelpers.ts
 COPY --from=build /app/migrations ./migrations
 COPY --from=build /app/dist ./dist

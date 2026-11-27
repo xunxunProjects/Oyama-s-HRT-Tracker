@@ -8,7 +8,6 @@ export const BW = 70;
 
 /** Distribution volumes the engine uses, in mL, at the reference weight. */
 export const VD_E2_ML = 2.0 * BW * 1000;
-export const VD_CPA_ML = 14.0 * BW * 1000;
 export const VD_T_ML = 1.0 * BW * 1000;
 
 let seq = 0;

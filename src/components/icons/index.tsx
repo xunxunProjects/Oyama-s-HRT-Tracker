@@ -45,7 +45,6 @@ export const ArrowRight = glyph('arrow-right', 'ArrowRight');
 export const ChevronRight = glyph('chevron-right', 'ChevronRight');
 export const ChevronLeft = glyph('chevron-left', 'ChevronLeft');
 export const ChevronDown = glyph('chevron-down', 'ChevronDown');
-export const ChevronUp = glyph('chevron-up', 'ChevronUp');
 export const Search = glyph('search', 'Search');
 export const Bookmark = glyph('bookmark', 'Bookmark');
 export const BookmarkPlus = glyph('bookmark-plus', 'BookmarkPlus');

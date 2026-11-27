@@ -12,7 +12,6 @@
  */
 
 export const ANONPAY_ENDPOINT = 'https://trocador.app/anonpay/';
-export const ANONPAY_STATUS_PREFIX = 'https://trocador.app/anonpay/status/';
 export const MIN_KYC_RATING = 'A';
 
 export interface InvoiceRequest {

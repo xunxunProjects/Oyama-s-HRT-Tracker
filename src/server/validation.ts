@@ -1,7 +1,8 @@
 import type { Env } from './env';
 import { MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH, passwordByteLength, passwordStrength } from '../../passwordStrength';
+import { USERNAME_PATTERN } from '../utils/username';
 
-export const USERNAME_REGEX = /^[a-zA-Z0-9_-]{3,30}$/;
+export const USERNAME_REGEX = USERNAME_PATTERN;
 export const MAX_PASSWORD_LENGTH = 128;
 
 const RESERVED_USERNAMES = new Set([

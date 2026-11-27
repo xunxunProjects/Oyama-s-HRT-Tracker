@@ -10,3 +10,11 @@ package-lock.json
 # Prettier escapes underscores inside bold inline math (**$F_{x}$** becomes
 # **$F\_{x}$**), which breaks the subscripts when GitHub renders the formulas.
 Algorithm Explanation.md
+
+# Maintainer-local, untracked planning files. Tracked plans and specs in these
+# directories are still formatted; only these drafts are excluded.
+.planning/
+.playwright-mcp/
+docs/superpowers/plans/2026-11-26-hydration-beta.md
+docs/superpowers/plans/2026-11-26-safety-alerts.md
+docs/superpowers/specs/2026-11-26-physiology-beta-safety-design.md
