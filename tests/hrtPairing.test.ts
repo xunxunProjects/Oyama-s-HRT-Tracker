@@ -315,4 +315,31 @@ describe('/hrt pairing', () => {
         };
         expect(db.prepare('SELECT id FROM sessions WHERE id = ?').get(pairRow.session_id)).toBeUndefined();
     });
+
+    it('sweeps expired pairing requests and stale holds on schedule', async () => {
+        const started = await startPairing();
+        const requestId = started.body!.request_id as string;
+        const cutoff = Math.floor(Date.now() / 1000) - 12 * 60 * 60 - 60;
+        db.prepare('UPDATE hrt_pair_requests SET created_at = ?, expires_at = ? WHERE id = ?').run(
+            cutoff,
+            cutoff,
+            requestId,
+        );
+        db.prepare(
+            `INSERT INTO hrt_holds (username_key, hold_until, blocked_count, first_blocked_at, last_blocked_at)
+             VALUES (?, ?, ?, ?, ?)`,
+        ).run('alice', cutoff, 11, cutoff, cutoff);
+
+        let work: Promise<void> | undefined;
+        const scheduledCtx = {
+            waitUntil: (promise: Promise<void>) => {
+                work = promise;
+            },
+        } as unknown as Parameters<typeof worker.scheduled>[2];
+        await worker.scheduled({} as Parameters<typeof worker.scheduled>[0], env, scheduledCtx);
+        await work;
+
+        expect(db.prepare('SELECT id FROM hrt_pair_requests WHERE id = ?').get(requestId)).toBeUndefined();
+        expect(db.prepare('SELECT username_key FROM hrt_holds WHERE username_key = ?').get('alice')).toBeUndefined();
+    });
 });

@@ -43,6 +43,8 @@ HRT_RAW_KEY=/data/hrt/server-key.pem
 HRT_SERVICE_TOKEN_FILE=/data/hrt/service-token
 HRT_WEB_ORIGIN=http://127.0.0.1:8787
 HRT_RAW_MAX_CONNECTIONS=8
+# Pairing is unauthenticated on the wire; bound it per source address.
+HRT_PAIR_STARTS_PER_MINUTE=10
 # The web app also needs HRT_IP_KEY, base64 of 32 random bytes, to encrypt
 # pairing IPs at rest. Docker generates and persists it when omitted.
 HRT_IP_KEY=<base64-32-bytes>
@@ -81,6 +83,8 @@ authorize the certificate's SHA-256 DER fingerprint.
 - ALPN `hrt/1`; TLS 1.3 only.
 - Maximum 8 concurrent connections by default; each frame is bounded to
   24 MiB.
+- `pair.start` is limited to 10 frames per source IP per minute by default;
+  excess frames get `RATE_LIMITED` and are never forwarded to the web app.
 - Idle timeout 30 seconds; backend timeout 30 seconds; handshake timeout
   15 seconds.
 - No redirects, no compression, no pipelining, no general forward proxy.

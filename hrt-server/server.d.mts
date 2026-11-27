@@ -19,6 +19,7 @@ export interface HrtServerOptions {
     requestTimeoutMs?: number;
     idleTimeoutMs?: number;
     handshakeTimeoutMs?: number;
+    pairStartsPerMinute?: number;
 }
 
 export function createHrtServer(options: HrtServerOptions): TlsServer;

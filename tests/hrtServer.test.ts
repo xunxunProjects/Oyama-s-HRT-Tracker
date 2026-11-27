@@ -128,10 +128,10 @@ class FrameClient {
     }
 }
 
-async function connect(): Promise<FrameClient> {
+async function connect(port = rawPort): Promise<FrameClient> {
     const socket = tls.connect({
         host: '127.0.0.1',
-        port: rawPort,
+        port,
         servername: 'localhost',
         ca: serverCert,
         ALPNProtocols: ['hrt/1'],
@@ -259,6 +259,7 @@ beforeAll(async () => {
         serviceToken: SERVICE_TOKEN,
         maxConnections: 8,
         authorizeCacheMs: 0,
+        pairStartsPerMinute: 1000,
     });
     await new Promise<void>(resolve => rawServer.listen(0, '127.0.0.1', resolve));
     rawPort = (rawServer.address() as AddressInfo).port;
@@ -317,6 +318,56 @@ describe.skipIf(!hasOpenSSL)('hrt raw server', () => {
             expect(JSON.parse(pairStarts[0].body).code_hash).toBe('aa'.repeat(32));
         } finally {
             client.close();
+        }
+    });
+
+    it('throttles repeated pair.start frames from the same client IP', async () => {
+        const limited = createHrtServer({
+            key: serverKey,
+            cert: serverCert,
+            webOrigin: backendOrigin,
+            serviceToken: SERVICE_TOKEN,
+            maxConnections: 8,
+            authorizeCacheMs: 0,
+            pairStartsPerMinute: 2,
+        });
+        await new Promise<void>(resolve => limited.listen(0, '127.0.0.1', resolve));
+        const limitedPort = (limited.address() as AddressInfo).port;
+        const pairFrame = (id: string) => ({
+            id,
+            op: 'pair.start',
+            body_base64: Buffer.from(
+                JSON.stringify({
+                    code_hash: 'aa'.repeat(32),
+                    device_certificate: clientCert.toString('utf8'),
+                    device_name: 'test device',
+                }),
+            ).toString('base64'),
+        });
+        try {
+            const client = await connect(limitedPort);
+            try {
+                const before = pairStarts.length;
+                expect((await client.send(pairFrame('throttle-1'))).status).toBe(200);
+                expect((await client.send(pairFrame('throttle-2'))).status).toBe(200);
+                expect(pairStarts).toHaveLength(before + 2);
+                const third = await client.send(pairFrame('throttle-3'));
+                expect((third.error as { code: string }).code).toBe('RATE_LIMITED');
+                expect(pairStarts).toHaveLength(before + 2);
+
+                const nextClient = await connect(limitedPort);
+                try {
+                    const denied = await nextClient.send(pairFrame('throttle-4'));
+                    expect((denied.error as { code: string }).code).toBe('RATE_LIMITED');
+                    expect(pairStarts).toHaveLength(before + 2);
+                } finally {
+                    nextClient.close();
+                }
+            } finally {
+                client.close();
+            }
+        } finally {
+            await new Promise<void>(resolve => limited.close(() => resolve()));
         }
     });
 

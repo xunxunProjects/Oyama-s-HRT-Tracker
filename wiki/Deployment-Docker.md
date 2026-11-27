@@ -93,6 +93,7 @@ previous-secret fallback.
 | `HRT_RAW_CERT`, `HRT_RAW_KEY`           | none                    | PEM certificate and key for the raw server. The key must be mode 600. Docker does not create them.                                                                          |
 | `HRT_WEB_ORIGIN`                        | `http://127.0.0.1:8787` | Where the raw server reaches the web app. Set it if you change `PORT`.                                                                                                      |
 | `HRT_RAW_MAX_CONNECTIONS`               | `8`                     | Concurrent raw connections.                                                                                                                                                 |
+| `HRT_PAIR_STARTS_PER_MINUTE`            | `10`                    | Per-client-IP limit on raw `pair.start` frames. Pairing is unauthenticated on the wire, so this bounds state exhaustion.                                                    |
 | `HRT_F2F_ESCROW`                        | off                     | `1` reserves one escrow key for each new F2F cohort from the operator's pool.                                                                                               |
 | `HRT_ESCROW_KEY`, `HRT_ESCROW_KEY_FILE` | generated               | Base64 of 32 bytes; wraps stored escrow private keys. Back it up. Docker creates `/data/hrt/escrow-key` once if neither is supplied.                                        |
 

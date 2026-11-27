@@ -20,6 +20,8 @@ const MAX_PATH_BYTES = 2048;
 const MAX_HEADER_VALUE_BYTES = 8192;
 const MAX_IDS_PER_CONNECTION = 1000;
 const MAX_REQUEST_BODY_BYTES = 16 * 1024 * 1024;
+const PAIR_THROTTLE_WINDOW_MS = 60_000;
+const MAX_PAIR_THROTTLE_KEYS = 10_000;
 
 const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE']);
 const ALLOWED_REQUEST_HEADERS = new Set(['authorization', 'accept', 'content-type', 'if-match']);
@@ -273,6 +275,34 @@ function normalizeClientIp(address) {
     return address.startsWith('::ffff:') ? address.slice(7) : address;
 }
 
+/* Pairing is the only unauthenticated operation on the raw listener: a caller
+   does not need an authorized device yet. Bound it per source address so one
+   client cannot put arbitrary usernames into holds or pile up pairing rows. */
+function createPairStartThrottle(limit) {
+    const hits = new Map();
+    return clientIp => {
+        const now = Date.now();
+        const recent = (hits.get(clientIp) ?? []).filter(ts => now - ts < PAIR_THROTTLE_WINDOW_MS);
+        if (recent.length >= limit) {
+            hits.set(clientIp, recent);
+            return false;
+        }
+        recent.push(now);
+        hits.set(clientIp, recent);
+        if (hits.size > MAX_PAIR_THROTTLE_KEYS) {
+            for (const [ip, times] of hits) {
+                if (times.every(ts => now - ts >= PAIR_THROTTLE_WINDOW_MS)) hits.delete(ip);
+            }
+            while (hits.size > MAX_PAIR_THROTTLE_KEYS) {
+                const oldest = hits.keys().next();
+                if (oldest.done) break;
+                hits.delete(oldest.value);
+            }
+        }
+        return true;
+    };
+}
+
 function hasControlCharacter(value) {
     for (let index = 0; index < value.length; index += 1) {
         const code = value.charCodeAt(index);
@@ -359,6 +389,7 @@ export function createHrtServer({
     requestTimeoutMs = 30_000,
     idleTimeoutMs = 30_000,
     handshakeTimeoutMs = 15_000,
+    pairStartsPerMinute = 10,
 }) {
     if (!key || !cert) {
         throw new Error('the raw server needs a TLS key and certificate');
@@ -369,6 +400,10 @@ export function createHrtServer({
     if (!Number.isInteger(maxConnections) || maxConnections < 1) {
         throw new Error('maxConnections must be a positive integer');
     }
+    if (!Number.isInteger(pairStartsPerMinute) || pairStartsPerMinute < 1) {
+        throw new Error('pairStartsPerMinute must be a positive integer');
+    }
+    const pairStartAllowed = createPairStartThrottle(pairStartsPerMinute);
     const origin = loopbackOrigin(webOrigin);
     const serviceHeaders = {
         'x-hrt-service': serviceToken,
@@ -476,6 +511,10 @@ export function createHrtServer({
                 }
 
                 if (message.op === 'pair.start' || message.op === 'pair.poll') {
+                    if (message.op === 'pair.start' && !pairStartAllowed(clientIp)) {
+                        sendError(socket, id, 'RATE_LIMITED', 'too many pairing attempts from this address');
+                        return;
+                    }
                     const body = message.body_base64 === undefined ? Buffer.alloc(0) : decodeBody(message.body_base64);
                     const response = await forwardHttp({
                         origin,
@@ -633,6 +672,7 @@ export async function startFromEnv(env = process.env) {
         webOrigin: env.HRT_WEB_ORIGIN ?? 'http://127.0.0.1:8787',
         serviceToken,
         maxConnections: Number(env.HRT_RAW_MAX_CONNECTIONS ?? '8'),
+        pairStartsPerMinute: Number(env.HRT_PAIR_STARTS_PER_MINUTE ?? '10'),
     });
     await new Promise((resolve, reject) => {
         server.once('error', reject);

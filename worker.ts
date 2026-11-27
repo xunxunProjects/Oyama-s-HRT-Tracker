@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { MAX_CLOUD_BACKUP_BYTES } from './backupPolicy';
 import { getContent, listContent, storeContent } from './contentStore';
 import { addToolLoginFields, handleToolProtected } from './toolApi';
-import { handleHrtWeb, hrtDeviceMatchesToken } from './hrtPairing';
+import { handleHrtWeb, hrtDeviceMatchesToken, sweepHrtPairing } from './hrtPairing';
 import { handleF2fWeb, sweepF2fCohorts } from './f2f';
 import {
     DosageShareSnapshot,
@@ -950,6 +950,11 @@ export default {
                     await sweepF2fCohorts(env);
                 } catch (e) {
                     console.error('Failed to sweep F2F cohorts:', e);
+                }
+                try {
+                    await sweepHrtPairing(env);
+                } catch (e) {
+                    console.error('Failed to sweep HRT pairing state:', e);
                 }
             })(),
         );

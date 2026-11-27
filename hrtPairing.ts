@@ -789,3 +789,12 @@ export async function hrtDeviceMatchesToken(
         .first()) as { user_id: string } | null;
     return Boolean(device && device.user_id === userId);
 }
+
+/** Scheduled housekeeping for pairing state that used to have no deletion path. */
+export async function sweepHrtPairing(env: Env): Promise<void> {
+    // Keep exactly the window the owner can see in /api/hrt/requests, and keep
+    // expired holds for the same window so their blocked count stays visible.
+    const cutoff = nowSeconds() - REQUEST_RETENTION_SECONDS;
+    await env.DB.prepare('DELETE FROM hrt_pair_requests WHERE created_at < ?').bind(cutoff).run();
+    await env.DB.prepare('DELETE FROM hrt_holds WHERE hold_until < ?').bind(cutoff).run();
+}
