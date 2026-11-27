@@ -2,6 +2,7 @@ import { Route } from '../types';
 import type { DoseEvent, PKParams } from '../types';
 import { moduleFor } from '../dispatch';
 import { resolvePatchWearH } from './patch';
+import { resolvePelletWearH } from './pellet';
 
 export class PrecomputedEventModel {
     private model: (t: number) => number;
@@ -44,7 +45,7 @@ export function computeMaxLifetimeH(params: PKParams, event: DoseEvent, allEvent
     // wear of this very event: two patches applied at the same moment can come
     // off at different times.
     if (event.route === Route.patchApply || event.route === Route.pellet) {
-        const wearH = resolvePatchWearH(event, allEvents);
+        const wearH = event.route === Route.pellet ? resolvePelletWearH(event) : resolvePatchWearH(event, allEvents);
         if (wearH >= Number.MAX_VALUE) return Infinity; // Worn indefinitely, always contributes
         const decayH = params.k3 > 0 ? Math.ceil(13.816 / params.k3) : 10000;
         return wearH + decayH;
