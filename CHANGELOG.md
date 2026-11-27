@@ -8,6 +8,26 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## Unreleased — 1.6 rc line (`release/1.6-rc`)
+
+- Stabilization work after `1.6.0-rc.1`: rate limits fail closed with a local
+  fallback, raw HRT pairing is throttled and swept, trusted-IP password
+  rechecks and share-key requests use the password bucket, WebAuthn rejects
+  non-advancing counters, complete backups restore age-model settings, pellet
+  release is derived from the saved dose, the Rust `url` crate is upgraded to
+  2.5.9 with a non-blocking dependency-audit report, missing transmasc route
+  labels are translated, and test/CI guards pin the simulation result contract,
+  expected literature gaps, manual rc version bumps, and low-risk debt cleanup.
+  `main` is unchanged at 1.5.4. Per-finding status is recorded in
+  `docs/superpowers/2026-11-27-1.6-rc1-audit.md`.
+  `1.6.0-rc.1` 之后的稳定化工作：限流在绑定缺失或抛错时改为拒绝并带本地回退，
+  原始 HRT 配对增加限流与清理，可信 IP 密码复核和分享密钥请求改用密码限流桶，
+  WebAuthn 拒绝不再递增的计数器，完整备份恢复年龄模型设置，药丸释放速率由已保存
+  剂量推导，Rust `url` 升级到 2.5.9 并加入非阻塞依赖审计报表，补齐跨性别男性
+  给药途径的缺失翻译，并新增测试/CI 守卫以固定模拟结果契约、文献缺口、手动 rc
+  版本升级流程与低风险技术债清理。`main` 仍停留在 1.5.4。逐项状态见
+  `docs/superpowers/2026-11-27-1.6-rc1-audit.md`。
+
 ## 1.6.0-rc.1
 
 - First release-candidate update: version bumped to `1.6.0-rc.1` on the new
