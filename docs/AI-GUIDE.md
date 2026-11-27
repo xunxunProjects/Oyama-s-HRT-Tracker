@@ -590,8 +590,12 @@ PR template instead of replacing it.
 `main` is the stable line and stays at 1.5.4 during the rc cycle. Work for 1.6
 happens on `release/1.6-rc`, a beta line that is allowed to be unstable. Merge
 `main` into the rc branch in small, frequent steps; do not save up one large
-conflict for the end. A later merge back to `main` is the release event, not a
-daily occurrence.
+conflict for the end. **Never merge the rc line into `main` during the rc
+cycle.** `main` auto-deploys the live site; an unstable rc reaching production
+would be a disservice to users. Another maintainer has stated they will reject
+any PR that merges an rc into `main` and revert direct commits to `main`. The
+final release is a separate, explicitly agreed event — not an automatic step
+after rc10.
 
 The ten stages are tags on that one branch, not ten branches:
 
@@ -600,7 +604,7 @@ The ten stages are tags on that one branch, not ten branches:
 | rc1       | Baseline and full audit only. No findings are fixed; they are written to the audit file.      |
 | rc2 – rc5 | Fix the prioritized findings: technical debt, AI-generated cruft, and security work.          |
 | rc6 – rc9 | Deliberately slow. Leave room for a cooperating maintainer's new work; avoid unrelated churn. |
-| rc10      | Final review, then merge the rc branch to `main` and release 1.6.                             |
+| rc10      | Final review only. Any merge into `main` requires explicit maintainer agreement, never auto.  |
 
 Rules for agents working on this train:
 

@@ -89,8 +89,9 @@ claim it passed.
 ## 1.6 release-candidate rules
 
 - `main` is stable; `release/1.6-rc` is beta and may be unstable. Sync `main`
-  into the rc branch in small steps; merge the rc branch back to `main` only
-  after the rc10 final review.
+  into the rc branch in small steps. Do **not** merge the rc branch back to
+  `main` during the rc cycle; any final release merge requires explicit
+  maintainer agreement and is never automatic.
 - rc1 is audit-only: produce evidence and a ranked findings file at
   `docs/superpowers/2026-11-27-1.6-rc1-audit.md`; fix nothing in rc1.
 - rc2 – rc5 are the fix windows for technical debt, AI-generated cruft, and
