@@ -7,5 +7,8 @@ export default defineConfig({
         include: ['tests/**/*.test.ts'],
         environment: 'node',
         setupFiles: ['tests/setup.ts'],
+        // F-01: heavy calibration/simulation cases exceeded Vitest's 5 s
+        // default under parallel load while passing in isolation.
+        testTimeout: 15_000,
     },
 });
