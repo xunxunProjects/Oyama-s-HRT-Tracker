@@ -1,4 +1,12 @@
-# Transmasculine PK/PD parity plan
+# Transmasculine PK/PD parity plan (historical)
+
+> **Historical roadmap — frozen.** This file records the original 2025 phase
+> plan and is kept for provenance only. The phase list and status below are not
+> current: several items previously marked "needs wiring" are already wired in
+> `src/domain/runSimulation.ts`, and the "Remaining" list predates later work.
+> Do not use this file to decide what is unfinished. See `docs/AI-GUIDE.md` for
+> current contributor rules and `docs/superpowers/2026-11-27-1.6-rc1-audit.md`
+> for current known issues.
 
 Source issue: https://github.com/xunxunProjects/Oyama-s-HRT-Tracker/issues/215
 Source design doc: `transmasc_hrt_modeling_document.md` (v1.0)
@@ -8,14 +16,18 @@ Target level: transfeminine estradiol stack in `logic.ts` / `Algorithm Explanati
 
 Bring the transmasculine (testosterone) model to the same engineering level as the transfeminine (estradiol) model: multi-formulation PK, free/bioavailable T, dynamic SHBG, gonadectomy/uterus state, hematocrit safety PD, amenorrhea time-to-event, body-composition slow variables, other-drug terms, and the calibration stack.
 
-## Execution rules (this repo)
+## Original execution rules (historical)
 
-- One phase = one PR. Merge with `gh pr merge --admin` without waiting for CI.
+These were the rules when the roadmap was active. They are **not** current
+contributor policy; follow `docs/AI-GUIDE.md` instead. In particular, CI must
+always pass before integration — never merge with `--admin` to skip it.
+
+- One phase = one PR, with CI green before merge.
 - Each merged step gets a diary entry in `docs/todo/day/NNN-<slug>.md`.
 - TDD: failing test first, then implementation, then `npm test`.
 - No version bump.
 
-## Phases
+## Phases (historical record)
 
 1. **Phase 0 — Literature parameter extraction** (docs only). Extract per-formulation PK parameters (D, AUC, Cmax, Tmax, t1/2, Vd/F, CL/F, ka) from labels/papers into `docs/todo/parameters.md`.
 2. **Phase 1 — Multi-formulation T PK** (code), split into sub-phases:
@@ -48,4 +60,6 @@ Bring the transmasculine (testosterone) model to the same engineering level as t
 - Phase 6.1 amenorrhea hazard: done (PR #224).
 - Phase 7.1 body-comp step: done (PR #226).
 - Tests: 100k robustness (PR #230), 500k cross-validation (PR #232).
-- Remaining: 1.2 nasal gel, 1.3 pellet, 1.4 SC flag, 1.5 TU transit, Phase 3 dynamic SHBG, Phase 8 other drugs, Phase 9 calibration, Phase 10 validation, plus wiring of all pure functions into runSimulation/calibration.
+- The original "Remaining" list is obsolete: nasal gel, pellet, SC and the
+  simulation/calibration wiring landed after this snapshot. Consult the current
+  source and `docs/superpowers/2026-11-27-1.6-rc1-audit.md` instead.
