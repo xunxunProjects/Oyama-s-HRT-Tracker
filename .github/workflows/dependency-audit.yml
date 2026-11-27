@@ -1,0 +1,72 @@
+name: Dependency audit
+
+# Non-blocking report, not a build gate. Advisories are triaged by maintainers;
+# allowed Rust warnings are tracked in docs/superpowers/2026-11-27-1.6-rc1-audit.md.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: cargo audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: Report advisories
+        working-directory: src-tauri
+        run: |
+          {
+            echo '## Rust dependency advisories'
+            echo '```text'
+            cargo audit 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  npm:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Report advisories
+        run: |
+          {
+            echo '## npm production advisories'
+            echo '```text'
+            npm audit --omit=dev 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
