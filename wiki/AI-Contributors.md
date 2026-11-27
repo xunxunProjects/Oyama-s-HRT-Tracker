@@ -85,6 +85,12 @@ claim it passed.
   `1.6.0-rc.1`. The rc stages are tags (`v1.6-rc1` … `v1.6-rc10`) on the single
   `release/1.6-rc` branch, not ten branches. These tags deliberately do not
   match the release workflow, so they do not publish.
+- RC version bumps are manual and supported: update the six version fields
+  (`package.json`, both `version` fields in `package-lock.json`,
+  `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and the app package in
+  `src-tauri/Cargo.lock`), then run `python3 scripts/set_version.py --check`.
+  Do not pass an rc string to `scripts/set_version.py --update`, which only
+  accepts `X.Y.Z`, and do not widen the stable release tag pattern.
 
 ## 1.6 release-candidate rules
 

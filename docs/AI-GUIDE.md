@@ -626,6 +626,12 @@ Rules for agents working on this train:
    `.github/workflows/release.yml` only matches `vX.Y.Z` tags. The rc tag names
    (`v1.6-rc1` … `v1.6-rc10`) are intentionally outside that pattern, so rc
    stages do not fire a release. Do not "fix" this to trigger a publish.
+   The supported RC bump is manual: update all six version fields
+   (`package.json`, the two `version` fields in `package-lock.json`,
+   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and the app package in
+   `src-tauri/Cargo.lock`), then run `python3 scripts/set_version.py --check`.
+   Never pass an rc string to `--update`, and do not widen the release tag
+   pattern to publish an rc.
 6. Untracked work in `.planning/`, `.playwright-mcp/`, and
    `docs/superpowers/plans|specs/` belongs to the maintainer. Read it if
    relevant, never modify or delete it. A root checkout containing those
