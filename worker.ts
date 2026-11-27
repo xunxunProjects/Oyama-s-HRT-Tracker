@@ -53,9 +53,9 @@ export type { Env } from './src/server/env';
 // switched itself off.
 //
 // Every caller asks for some requests-per-minute ceiling; the binding whose
-// class matches is used. A missing binding is a configuration hole, not a
-// runtime condition, and it fails OPEN so a mis-deployed self-hosted instance
-// still serves — it is logged once per isolate so it can't stay quiet.
+// class matches is used. A missing binding is a configuration hole, logged once
+// per isolate; local and self-hosted instances fall back to a per-isolate memory
+// limiter instead of disabling throttling. A binding error denies the request.
 import { checkRateLimit } from './src/server/rateLimit';
 import {
     allowedPasskeyOrigins,
