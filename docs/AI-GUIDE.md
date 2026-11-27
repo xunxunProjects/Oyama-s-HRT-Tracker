@@ -3,9 +3,11 @@
 > **Audience:** AI coding agents and the people directing them. Read this file
 > before changing code.
 >
-> **Scope:** Oyama's HRT Tracker v1.5.4, commit `1491f56`, 2026-11-25. If this
-> file disagrees with the code, the code wins. Update this file in the same
-> pull request when a change makes part of it wrong.
+> **Scope:** Oyama's HRT Tracker v1.6.0-rc.1 (release-candidate line), commit
+> `f0d4cc2` plus the rc1 version/docs update, 2026-11-27. The stable line stays
+> at 1.5.4 on `main`. If this file disagrees with the code, the code wins.
+> Update this file in the same pull request when a change makes part of it
+> wrong.
 >
 > **Language:** English only, deliberately. `README.md` and `CONTRIBUTING.md`
 > stay bilingual for human readers. This page is the shared machine-readable
@@ -552,6 +554,8 @@ PR template instead of replacing it.
 | [`wiki/Deployment-Docker.md`](../wiki/Deployment-Docker.md)                                       | Docker install and operations.                                       |
 | [`wiki/Deployment-VPS.md`](../wiki/Deployment-VPS.md)                                             | VPS and reverse-proxy setup.                                         |
 | [`wiki/Recent-Updates.md`](../wiki/Recent-Updates.md)                                             | Last 40 merged pull requests and security-relevant changes.          |
+| [`wiki/AI-Contributors.md`](../wiki/AI-Contributors.md)                                           | Short contributor and commit checklist.                              |
+| [`docs/superpowers/2026-11-27-1.6-rc1-audit.md`](./superpowers/2026-11-27-1.6-rc1-audit.md)       | Actionable 1.6-rc1 audit findings, severity, and fix windows.        |
 | [`docs/tool-interface/TOOL_API.md`](./tool-interface/TOOL_API.md)                                 | `/api/tool/v1` contract.                                             |
 | [`docs/hrt-protocol/F2F_SERVICE.md`](./hrt-protocol/F2F_SERVICE.md)                               | F2F cohort service and raw protocol.                                 |
 | [`docs/backup-schema-audit/BACKUP_TEST_VECTORS.md`](./backup-schema-audit/BACKUP_TEST_VECTORS.md) | Website/tools backup acceptance vectors.                             |
@@ -580,6 +584,43 @@ PR template instead of replacing it.
 - **Tool API** — `/api/tool/v1`, the HTTP surface for the CLI.
 - **Escrow** — an operator-provisioned OpenPGP key pair whose private part is
   stored as an AES-GCM envelope under `HRT_ESCROW_KEY`.
+
+## 12. The 1.6 release-candidate train
+
+`main` is the stable line and stays at 1.5.4 during the rc cycle. Work for 1.6
+happens on `release/1.6-rc`, a beta line that is allowed to be unstable. Merge
+`main` into the rc branch in small, frequent steps; do not save up one large
+conflict for the end. A later merge back to `main` is the release event, not a
+daily occurrence.
+
+The ten stages are tags on that one branch, not ten branches:
+
+| Stage     | What happens                                                                                  |
+| --------- | --------------------------------------------------------------------------------------------- |
+| rc1       | Baseline and full audit only. No findings are fixed; they are written to the audit file.      |
+| rc2 – rc5 | Fix the prioritized findings: technical debt, AI-generated cruft, and security work.          |
+| rc6 – rc9 | Deliberately slow. Leave room for a cooperating maintainer's new work; avoid unrelated churn. |
+| rc10      | Final review, then merge the rc branch to `main` and release 1.6.                             |
+
+Rules for agents working on this train:
+
+1. rc1 produces evidence and a ranked list, not patches. The audit file is
+   [`docs/superpowers/2026-11-27-1.6-rc1-audit.md`](./superpowers/2026-11-27-1.6-rc1-audit.md);
+   it is the single source of truth for findings, severity, and fix window.
+2. Implement rc2 – rc5 work in small commits under the theme of one finding.
+   Every fix carries its test and the verification command in the audit file.
+3. Do not pull rc6 – rc9 work forward without a maintainer's explicit call.
+   Slow stages are a feature, not dead time.
+4. Deployments use 1.5.4 from `main` until the final 1.6 release. Never deploy
+   the rc branch to a production instance.
+5. `scripts/set_version.py` only accepts `X.Y.Z` in `--update` mode and
+   `.github/workflows/release.yml` only matches `vX.Y.Z` tags. The rc tag names
+   (`v1.6-rc1` … `v1.6-rc10`) are intentionally outside that pattern, so rc
+   stages do not fire a release. Do not "fix" this to trigger a publish.
+6. Untracked work in `.planning/`, `.playwright-mcp/`, and
+   `docs/superpowers/plans|specs/` belongs to the maintainer. Read it if
+   relevant, never modify or delete it. A root checkout containing those
+   directories may fail `format:check`; the isolated rc worktree does not.
 
 ---
 

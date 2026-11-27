@@ -8,6 +8,20 @@ Notable changes to this project. Full release notes for each version are on the
 
 ---
 
+## 1.6.0-rc.1
+
+- First release-candidate update: version bumped to `1.6.0-rc.1` on the new
+  `release/1.6-rc` line. This update documents the 1.6 review train in
+  `docs/AI-GUIDE.md` and `wiki/AI-Contributors.md` and records the audit scope in
+  `docs/superpowers/2026-11-27-1.6-rc1-audit.md`. No application behavior or
+  wire format changed; `main` stays at stable 1.5.4. This is a beta line for
+  testing and review, not for production.
+
+  第一个发布候选更新：新的 `release/1.6-rc` 分支上版本升至 `1.6.0-rc.1`。本次更新在
+  `docs/AI-GUIDE.md` 与 `wiki/AI-Contributors.md` 中记录 1.6 审查流程，并在
+  `docs/superpowers/2026-11-27-1.6-rc1-audit.md` 记录审查范围。没有改变应用行为或
+  传输格式；`main` 仍是稳定的 1.5.4。这是用于测试与审查的 beta 线，不用于生产环境。
+
 ## 1.5.4
 
 - A security patch release. Changing MFA settings, passkeys, recovery codes or
