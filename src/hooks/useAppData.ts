@@ -743,6 +743,8 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         plan,
         weight,
         pkParams,
+        birthYear,
+        ageBeta,
         calibrationMethod,
         calibrationHistoryMode,
     });
@@ -788,6 +790,12 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         }
         if (result.weight !== undefined) setWeightState(result.weight);
         if (result.pkParams !== undefined) setPkParamsState(result.pkParams);
+        if (result.birthYear !== undefined) setBirthYearState(result.birthYear);
+        if (result.modelSettings) {
+            setCalibrationMethodState(result.modelSettings.calibrationMethod);
+            setCalibrationHistoryModeState(result.modelSettings.calibrationHistoryMode);
+            setAgeBetaState(result.modelSettings.ageBeta);
+        }
         if (result.calibration) {
             setCalibrationMethodState(result.calibration.method);
             setCalibrationHistoryModeState(result.calibration.historyMode);
@@ -820,8 +828,15 @@ export const useAppData = (showDialog: ShowDialog, { withPrediction = false }: {
         }
         if (result.weight !== undefined) setWeightState(result.weight);
         if (result.pkParams !== undefined) setPkParamsState(result.pkParams);
-        setCalibrationMethodState(result.calibration.method);
-        setCalibrationHistoryModeState(result.calibration.historyMode);
+        if (result.birthYear !== undefined) setBirthYearState(result.birthYear);
+        if (result.modelSettings) {
+            setCalibrationMethodState(result.modelSettings.calibrationMethod);
+            setCalibrationHistoryModeState(result.modelSettings.calibrationHistoryMode);
+            setAgeBetaState(result.modelSettings.ageBeta);
+        } else {
+            setCalibrationMethodState(result.calibration.method);
+            setCalibrationHistoryModeState(result.calibration.historyMode);
+        }
         touchModelSettings();
         return result;
     };

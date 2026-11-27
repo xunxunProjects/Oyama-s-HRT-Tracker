@@ -137,6 +137,8 @@ const active: CompleteBackupActive = {
     plan: [],
     weight: 70,
     pkParams: null,
+    birthYear: null,
+    ageBeta: false,
     calibrationMethod: 'mipd',
     calibrationHistoryMode: 'retrospective',
 };

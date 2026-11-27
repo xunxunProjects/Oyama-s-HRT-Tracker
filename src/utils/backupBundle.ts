@@ -30,6 +30,7 @@ import {
     Route,
     isLabAssay,
     isDrugCode,
+    isPlausibleBirthYear,
     isPlausibleBodyWeightKG,
     normalizeCalibrationMethod,
     sanitizePKParams,
@@ -49,8 +50,11 @@ import {
     loadJSONFromStorage,
     modeKeyFor,
     nsFor,
+    readModelSettingsFromStorage,
     readTombstonesFromStorage,
+    sanitizeModelSettings,
     type DoseTemplate,
+    type ModelSettings,
     type QuickDose,
     type StorageLike,
 } from './backupState';
@@ -125,6 +129,12 @@ export interface CompleteBackupBundle {
     /** Missing = the bundle says nothing; null = explicitly cleared. */
     pkParams?: PKCustomParams | null;
     pkParamsUpdatedAt?: number;
+    /** `null` means the user cleared it; omitted means the bundle says nothing. */
+    birthYear?: number | null;
+    birthYearUpdatedAt?: number;
+    /** Left out while this device has never chosen any model settings. */
+    modelSettings?: ModelSettings;
+    modelSettingsUpdatedAt?: number;
     calibration: CompleteBackupCalibration;
     preferences: PortablePreferences;
 }
@@ -138,6 +148,8 @@ export interface CompleteBackupActive {
     plan: PlanItem[];
     weight: number;
     pkParams: PKCustomParams | null;
+    birthYear: number | null;
+    ageBeta: boolean;
     calibrationMethod: CalibrationMethod;
     calibrationHistoryMode: CalibrationHistoryMode;
 }
@@ -172,6 +184,8 @@ export interface ScalarPreview<T> {
 export interface CompleteBackupScalarsPreview {
     weight?: ScalarPreview<number>;
     pkParams?: ScalarPreview<PKCustomParams | null>;
+    birthYear?: ScalarPreview<number | null>;
+    modelSettings?: ScalarPreview<ModelSettings>;
     calibration?: {
         action: 'unchanged' | 'overwrite' | 'blocked';
         current: CompleteBackupCalibration;
@@ -235,6 +249,10 @@ export interface CompleteBackupPreview {
     weightUpdatedAt?: number;
     pkParams?: PKCustomParams | null;
     pkParamsUpdatedAt?: number;
+    birthYear?: number | null;
+    birthYearUpdatedAt?: number;
+    modelSettings?: ModelSettings;
+    modelSettingsUpdatedAt?: number;
     /** Per-kind deletion effect, including ids, shown before confirmation. */
     deletionImpact: CompleteBackupDeletionImpact[];
     /** How scalar LWW fields will resolve, including equal-time conflicts. */
@@ -254,6 +272,8 @@ export interface CompleteBackupMergeResult {
     weight?: number;
     /** Present only when the bundle supplied a value; null means cleared. */
     pkParams?: PKCustomParams | null;
+    birthYear?: number | null;
+    modelSettings?: ModelSettings;
     calibration?: CompleteBackupCalibration;
     /** Allowlisted values only. The caller applies them to React state. */
     preferences: PortablePreferences;
@@ -271,6 +291,8 @@ export function classifyCompleteBackupOutcome(result: CompleteBackupMergeResult)
         result.applied.length > 0 ||
         result.weight !== undefined ||
         result.pkParams !== undefined ||
+        result.birthYear !== undefined ||
+        result.modelSettings !== undefined ||
         result.calibration !== undefined
     ) {
         return 'applied';
@@ -1048,6 +1070,22 @@ export function buildCompleteBackupBundleReportFromStorage(
         now,
         issues,
     );
+    const birthYearKey = nsFor(owner, 'birth-year');
+    const birthYearUpdatedAt = readBoundedStampString(
+        storage.getItem(nsFor(owner, 'birth-year-at')),
+        'birthYearUpdatedAt',
+        now,
+        issues,
+    );
+    const birthYear =
+        storage.getItem(birthYearKey) !== null || active.birthYear !== null
+            ? isPlausibleBirthYear(active.birthYear)
+                ? active.birthYear
+                : null
+            : birthYearUpdatedAt !== undefined
+              ? null
+              : undefined;
+    const model = readModelSettingsFromStorage(storage, owner);
     const sourceAccount = completeBackupAccountTag(owner);
     let pkParams: PKCustomParams | null | undefined;
     if (storage.getItem(pkKey) !== null || active.pkParams !== null) {
@@ -1071,6 +1109,9 @@ export function buildCompleteBackupBundleReportFromStorage(
             ...(weightUpdatedAt !== undefined ? { weightUpdatedAt } : {}),
             ...(pkParams !== undefined ? { pkParams } : {}),
             ...(pkUpdatedAt !== undefined ? { pkParamsUpdatedAt: pkUpdatedAt } : {}),
+            ...(birthYear !== undefined ? { birthYear } : {}),
+            ...(birthYearUpdatedAt !== undefined ? { birthYearUpdatedAt } : {}),
+            ...(model ? { modelSettings: model.value, modelSettingsUpdatedAt: model.at } : {}),
             calibration: {
                 method: active.calibrationMethod,
                 historyMode: active.calibrationHistoryMode,
@@ -1114,6 +1155,10 @@ interface ParsedBundle {
     weightUpdatedAt?: number;
     pkParams?: PKCustomParams | null;
     pkParamsUpdatedAt?: number;
+    birthYear?: number | null;
+    birthYearUpdatedAt?: number;
+    modelSettings?: ModelSettings;
+    modelSettingsUpdatedAt?: number;
 }
 
 const parseBundle = (raw: unknown, now: number): ParsedBundle => {
@@ -1279,6 +1324,36 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
         else pkParamsUpdatedAt = stamp.value;
     }
 
+    let birthYear: number | null | undefined;
+    if (raw.birthYear !== undefined) {
+        if (raw.birthYear === null || isPlausibleBirthYear(raw.birthYear)) birthYear = raw.birthYear;
+        else categoryErrors.birthYear = ['birthYear must be null or a plausible year'];
+    }
+    let birthYearUpdatedAt: number | undefined;
+    if (raw.birthYearUpdatedAt !== undefined) {
+        const stamp = readStamp(raw.birthYearUpdatedAt, now);
+        if (stamp.error)
+            categoryErrors.birthYear = [...(categoryErrors.birthYear ?? []), `birthYearUpdatedAt: ${stamp.error}`];
+        else birthYearUpdatedAt = stamp.value;
+    }
+
+    let modelSettings: ModelSettings | undefined;
+    if (raw.modelSettings !== undefined) {
+        const cleaned = sanitizeModelSettings(raw.modelSettings);
+        if (cleaned) modelSettings = cleaned;
+        else categoryErrors.modelSettings = ['modelSettings is invalid'];
+    }
+    let modelSettingsUpdatedAt: number | undefined;
+    if (raw.modelSettingsUpdatedAt !== undefined) {
+        const stamp = readStamp(raw.modelSettingsUpdatedAt, now);
+        if (stamp.error)
+            categoryErrors.modelSettings = [
+                ...(categoryErrors.modelSettings ?? []),
+                `modelSettingsUpdatedAt: ${stamp.error}`,
+            ];
+        else modelSettingsUpdatedAt = stamp.value;
+    }
+
     return {
         errors,
         createdAt: raw.createdAt as string,
@@ -1301,6 +1376,10 @@ const parseBundle = (raw: unknown, now: number): ParsedBundle => {
         weightUpdatedAt,
         pkParams,
         pkParamsUpdatedAt,
+        birthYear,
+        birthYearUpdatedAt,
+        modelSettings,
+        modelSettingsUpdatedAt,
     };
 };
 
@@ -1652,6 +1731,8 @@ const planScalars = (
     conflicts: string[];
     weight?: { action: ScalarPreviewAction; value: number; stamp?: number };
     pkParams?: { action: ScalarPreviewAction; value: PKCustomParams | null; stamp?: number };
+    birthYear?: { action: ScalarPreviewAction; value: number | null; stamp?: number };
+    modelSettings?: { action: ScalarPreviewAction; value: ModelSettings; stamp?: number };
     calibration?: { action: 'unchanged' | 'overwrite' | 'blocked' };
 } => {
     const conflicts: string[] = [];
@@ -1739,6 +1820,72 @@ const planScalars = (
         }
     }
 
+    let birthYearPlan: { action: ScalarPreviewAction; value: number | null; stamp?: number } | undefined;
+    if (parsed.birthYear !== undefined) {
+        const raw = context.storage.getItem(nsFor(context.owner, 'birth-year'));
+        const localStamp = readStampString(context.storage.getItem(nsFor(context.owner, 'birth-year-at')));
+        let localValue: number | null | undefined;
+        if (raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))) localValue = Number(raw);
+        else if (localStamp !== undefined) localValue = null;
+        const incomingAt = parsed.birthYearUpdatedAt ?? UNSTAMPED_SCALAR_AT;
+        const localAt = localStamp ?? UNSTAMPED_SCALAR_AT;
+        let action: ScalarPreviewAction;
+        if (blocked.has('birthYear')) {
+            action = 'blocked';
+        } else if (localValue === undefined) {
+            action = 'added';
+        } else if (incomingAt < localAt) {
+            action = 'skipped';
+        } else if (incomingAt > localAt) {
+            action = 'updated';
+        } else if (localValue === parsed.birthYear) {
+            action = 'unchanged';
+        } else {
+            action = 'conflict';
+            conflicts.push(
+                parsed.birthYearUpdatedAt === undefined
+                    ? 'birthYear exists on both sides without a reliable timestamp and the values differ'
+                    : 'birthYear has equal updatedAt but different content',
+            );
+            blocked.add('birthYear');
+        }
+        preview.birthYear = { action, current: localValue, incoming: parsed.birthYear };
+        if (action === 'added' || action === 'updated') {
+            birthYearPlan = { action, value: parsed.birthYear, stamp: parsed.birthYearUpdatedAt };
+        }
+    }
+
+    let modelSettingsPlan: { action: ScalarPreviewAction; value: ModelSettings; stamp?: number } | undefined;
+    if (parsed.modelSettings) {
+        const local = readModelSettingsFromStorage(context.storage, context.owner);
+        const incomingAt = parsed.modelSettingsUpdatedAt ?? UNSTAMPED_SCALAR_AT;
+        const localAt = local?.at ?? UNSTAMPED_SCALAR_AT;
+        let action: ScalarPreviewAction;
+        if (blocked.has('modelSettings') || blocked.has('calibration')) {
+            action = 'blocked';
+        } else if (!local) {
+            action = 'added';
+        } else if (incomingAt < localAt) {
+            action = 'skipped';
+        } else if (incomingAt > localAt) {
+            action = 'updated';
+        } else if (canonical(local.value) === canonical(parsed.modelSettings)) {
+            action = 'unchanged';
+        } else {
+            action = 'conflict';
+            conflicts.push(
+                parsed.modelSettingsUpdatedAt === undefined
+                    ? 'modelSettings exists on both sides without a reliable timestamp and the values differ'
+                    : 'modelSettings has equal updatedAt but different content',
+            );
+            blocked.add('modelSettings');
+        }
+        preview.modelSettings = { action, current: local?.value, incoming: parsed.modelSettings };
+        if (action === 'added' || action === 'updated') {
+            modelSettingsPlan = { action, value: parsed.modelSettings, stamp: parsed.modelSettingsUpdatedAt };
+        }
+    }
+
     let calibrationPlan: { action: 'unchanged' | 'overwrite' | 'blocked' } | undefined;
     if (parsed.calibration) {
         const current: CompleteBackupCalibration = {
@@ -1759,6 +1906,8 @@ const planScalars = (
         conflicts,
         weight: weightPlan,
         pkParams: pkPlan,
+        birthYear: birthYearPlan,
+        modelSettings: modelSettingsPlan,
         calibration: calibrationPlan,
     };
 };
@@ -1970,6 +2119,10 @@ export function inspectCompleteBackupBundle(raw: unknown, context: CompleteBacku
         weightUpdatedAt: parsed.weightUpdatedAt,
         pkParams: parsed.pkParams,
         pkParamsUpdatedAt: parsed.pkParamsUpdatedAt,
+        birthYear: parsed.birthYear,
+        birthYearUpdatedAt: parsed.birthYearUpdatedAt,
+        modelSettings: parsed.modelSettings,
+        modelSettingsUpdatedAt: parsed.modelSettingsUpdatedAt,
         deletionImpact: reconciled.deletionImpact,
         scalars: reconciled.scalars,
     };
@@ -2002,6 +2155,10 @@ export function completeBackupPreviewFingerprint(preview: CompleteBackupPreview)
         weightUpdatedAt: preview.weightUpdatedAt,
         pkParams: preview.pkParams,
         pkParamsUpdatedAt: preview.pkParamsUpdatedAt,
+        birthYear: preview.birthYear,
+        birthYearUpdatedAt: preview.birthYearUpdatedAt,
+        modelSettings: preview.modelSettings,
+        modelSettingsUpdatedAt: preview.modelSettingsUpdatedAt,
         deletionImpact: preview.deletionImpact,
         scalars: preview.scalars,
     });
@@ -2090,6 +2247,39 @@ export function mergeCompleteBackupBundleToStorage(
     } else if (reconciled.scalars.pkParams?.action === 'skipped') {
         result.skipped.push('pkParams');
     }
+    if (scalarPlan.birthYear) {
+        writes.push({
+            key: nsFor(context.owner, 'birth-year'),
+            value: scalarPlan.birthYear.value === null ? null : String(scalarPlan.birthYear.value),
+        });
+        writes.push({
+            key: nsFor(context.owner, 'birth-year-at'),
+            value: scalarPlan.birthYear.stamp !== undefined ? String(scalarPlan.birthYear.stamp) : null,
+        });
+        result.birthYear = scalarPlan.birthYear.value;
+        result.applied.push('birthYear');
+    } else if (reconciled.scalars.birthYear?.action === 'skipped') {
+        result.skipped.push('birthYear');
+    }
+    if (scalarPlan.modelSettings) {
+        writes.push({
+            key: nsFor(context.owner, 'cal-method'),
+            value: scalarPlan.modelSettings.value.calibrationMethod,
+        });
+        writes.push({
+            key: nsFor(context.owner, 'cal-history-mode'),
+            value: scalarPlan.modelSettings.value.calibrationHistoryMode,
+        });
+        writes.push({ key: nsFor(context.owner, 'age-beta'), value: String(scalarPlan.modelSettings.value.ageBeta) });
+        writes.push({
+            key: nsFor(context.owner, 'model-settings-at'),
+            value: scalarPlan.modelSettings.stamp !== undefined ? String(scalarPlan.modelSettings.stamp) : null,
+        });
+        result.modelSettings = scalarPlan.modelSettings.value;
+        result.applied.push('modelSettings');
+    } else if (reconciled.scalars.modelSettings?.action === 'skipped') {
+        result.skipped.push('modelSettings');
+    }
     if (parsed.calibration && scalarPlan.calibration?.action === 'overwrite') {
         writes.push({ key: nsFor(context.owner, 'cal-method'), value: parsed.calibration.method });
         writes.push({ key: nsFor(context.owner, 'cal-history-mode'), value: parsed.calibration.historyMode });
@@ -2176,6 +2366,8 @@ export interface CompleteBackupReplaceResult {
     modes: Partial<Record<ModeKey, CompleteBackupMode>>;
     weight?: number;
     pkParams?: PKCustomParams | null;
+    birthYear?: number | null;
+    modelSettings?: ModelSettings;
     calibration: CompleteBackupCalibration;
     preferences: PortablePreferences;
 }
@@ -2286,10 +2478,32 @@ export function replaceCompleteBackupBundleToStorage(
         result.pkParams = parsed.pkParams;
         result.applied.push('pkParams');
     }
+    if (parsed.birthYear !== undefined) {
+        writes.push({
+            key: nsFor(context.owner, 'birth-year'),
+            value: parsed.birthYear === null ? null : String(parsed.birthYear),
+        });
+        writes.push({ key: nsFor(context.owner, 'birth-year-at'), value: String(now) });
+        result.birthYear = parsed.birthYear;
+        result.applied.push('birthYear');
+    }
+    if (parsed.modelSettings) {
+        writes.push({ key: nsFor(context.owner, 'cal-method'), value: parsed.modelSettings.calibrationMethod });
+        writes.push({
+            key: nsFor(context.owner, 'cal-history-mode'),
+            value: parsed.modelSettings.calibrationHistoryMode,
+        });
+        writes.push({ key: nsFor(context.owner, 'age-beta'), value: String(parsed.modelSettings.ageBeta) });
+        writes.push({ key: nsFor(context.owner, 'model-settings-at'), value: String(now) });
+        result.modelSettings = parsed.modelSettings;
+        result.applied.push('modelSettings');
+    }
 
     const calibration = parsed.calibration!;
-    writes.push({ key: nsFor(context.owner, 'cal-method'), value: calibration.method });
-    writes.push({ key: nsFor(context.owner, 'cal-history-mode'), value: calibration.historyMode });
+    if (!parsed.modelSettings) {
+        writes.push({ key: nsFor(context.owner, 'cal-method'), value: calibration.method });
+        writes.push({ key: nsFor(context.owner, 'cal-history-mode'), value: calibration.historyMode });
+    }
     result.applied.push('calibration');
 
     applyReplaceJournal(context.storage, context.owner, writes);

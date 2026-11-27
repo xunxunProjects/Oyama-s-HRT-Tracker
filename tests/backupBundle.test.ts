@@ -17,6 +17,7 @@ import {
     inspectCompleteBackupBundle,
     mergeCompleteBackupBundleToStorage,
     readPortablePreferences,
+    replaceCompleteBackupBundleToStorage,
     sanitizePortablePreferences,
     type CompleteBackupActive,
     type CompleteBackupBundle,
@@ -206,6 +207,8 @@ const activeFrom = (storage: MemoryStorage, mode: ModeKey): CompleteBackupActive
         plan: read('plan'),
         weight: Number(storage.getItem('hrt-weight') ?? '70'),
         pkParams: JSON.parse(storage.getItem('hrt-pk-params') ?? 'null') as PKCustomParams | null,
+        birthYear: Number(storage.getItem('hrt-birth-year')) || null,
+        ageBeta: storage.getItem('hrt-age-beta') === 'true',
         calibrationMethod: (storage.getItem('hrt-cal-method') as 'ekf') ?? 'mipd',
         calibrationHistoryMode: (storage.getItem('hrt-cal-history-mode') as 'forward') ?? 'retrospective',
     };
@@ -1313,5 +1316,51 @@ describe('complete backup bundle data layer', () => {
     it('truncates long id lists with a +N more suffix', () => {
         expect(formatIds(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toBe('a, b, c, d, e, +2 more');
         expect(formatIds(['a'])).toBe('a');
+    });
+});
+
+describe('complete backup age-model settings round trip', () => {
+    it('restores birth year and age beta on merge', () => {
+        const source = seed();
+        source.setItem('hrt-birth-year', '1990');
+        source.setItem('hrt-birth-year-at', '1234');
+        source.setItem('hrt-age-beta', 'true');
+        source.setItem('hrt-model-settings-at', '4321');
+        const bundle = build(source);
+
+        expect(bundle.birthYear).toBe(1990);
+        expect(bundle.birthYearUpdatedAt).toBe(1234);
+        expect(bundle.modelSettings).toMatchObject({
+            calibrationMethod: 'ekf',
+            calibrationHistoryMode: 'forward',
+            ageBeta: true,
+        });
+
+        const target = new MemoryStorage();
+        const result = mergeCompleteBackupBundleToStorage(bundle, context(target));
+
+        expect(target.getItem('hrt-birth-year')).toBe('1990');
+        expect(target.getItem('hrt-birth-year-at')).toBe('1234');
+        expect(target.getItem('hrt-age-beta')).toBe('true');
+        expect(result.birthYear).toBe(1990);
+        expect(result.modelSettings?.ageBeta).toBe(true);
+    });
+
+    it('restores birth year and age beta on replace, including an explicit clear', () => {
+        const source = seed();
+        source.setItem('hrt-birth-year-at', '1234');
+        source.setItem('hrt-age-beta', 'false');
+        const bundle = build(source);
+        expect(bundle.birthYear).toBeNull();
+
+        const target = seed();
+        target.setItem('hrt-birth-year', '1980');
+        target.setItem('hrt-age-beta', 'true');
+        const result = replaceCompleteBackupBundleToStorage(bundle, context(target));
+
+        expect(target.getItem('hrt-birth-year')).toBeNull();
+        expect(target.getItem('hrt-age-beta')).toBe('false');
+        expect(result.birthYear).toBeNull();
+        expect(result.modelSettings?.ageBeta).toBe(false);
     });
 });
