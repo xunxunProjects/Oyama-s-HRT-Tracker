@@ -604,6 +604,9 @@ export const EN_BASE = {
     'route.oral': 'Oral',
     'route.sublingual': 'Sublingual',
     'route.gel': 'Gel',
+    'route.nasal': 'Nasal spray',
+    'route.sc': 'Subcutaneous',
+    'route.pellet': 'Pellet',
 
     'gel.site.arm': 'Arm',
     'gel.site.thigh': 'Thigh',

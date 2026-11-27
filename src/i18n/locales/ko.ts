@@ -479,6 +479,9 @@ export const KO = {
     'route.oral': '경구',
     'route.sublingual': '설하',
     'route.gel': '젤',
+    'route.nasal': '비강 스프레이',
+    'route.sc': '피하 주사',
+    'route.pellet': '펠릿',
 
     'gel.site.arm': '팔',
     'gel.site.thigh': '허벅지',

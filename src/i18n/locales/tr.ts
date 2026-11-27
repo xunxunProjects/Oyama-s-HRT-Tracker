@@ -509,6 +509,9 @@ export const TR = {
     'route.oral': 'Ağızdan',
     'route.sublingual': 'Dil altı',
     'route.gel': 'Jel',
+    'route.nasal': 'Burun spreyi',
+    'route.sc': 'Deri altı enjeksiyon',
+    'route.pellet': 'Pelet',
 
     'gel.site.arm': 'Kol',
     'gel.site.thigh': 'Uyluk',

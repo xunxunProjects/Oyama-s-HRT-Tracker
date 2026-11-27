@@ -404,6 +404,9 @@ export const JA = {
     'route.oral': '経口 (Oral)',
     'route.sublingual': '舌下 (Sublingual)',
     'route.gel': 'ジェル',
+    'route.nasal': '点鼻',
+    'route.sc': '皮下注射',
+    'route.pellet': 'ペレット',
 
     'gel.site.arm': '腕 (Arm)',
     'gel.site.thigh': '大腿 (Thigh)',

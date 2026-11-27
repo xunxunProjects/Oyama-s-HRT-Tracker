@@ -390,6 +390,9 @@ export const ZH_TW = {
     'route.oral': '口服（Oral）',
     'route.sublingual': '舌下（Sublingual）',
     'route.gel': '凝膠',
+    'route.nasal': '鼻噴',
+    'route.sc': '皮下注射',
+    'route.pellet': '皮下植入',
 
     'gel.site.arm': '手臂（Arm）',
     'gel.site.thigh': '大腿（Thigh）',
