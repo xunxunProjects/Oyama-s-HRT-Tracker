@@ -316,6 +316,22 @@ describe('/hrt pairing', () => {
         expect(db.prepare('SELECT id FROM sessions WHERE id = ?').get(pairRow.session_id)).toBeUndefined();
     });
 
+    it('throttles trusted-IP password rechecks with the shared password bucket', async () => {
+        for (let index = 0; index < 10; index += 1) {
+            const attempt = await call('/api/hrt/trusted-ips', {
+                token,
+                body: { ip: '203.0.113.20', label: 'throttle', password: 'wrong-password' },
+            });
+            expect(attempt.response.status).toBe(403);
+        }
+        const denied = await call('/api/hrt/trusted-ips', {
+            token,
+            body: { ip: '203.0.113.20', label: 'throttle', password: PASSWORD },
+        });
+        expect(denied.response.status).toBe(429);
+        expect(denied.body?.code).toBe('RATE_LIMITED');
+    });
+
     it('sweeps expired pairing requests and stale holds on schedule', async () => {
         const started = await startPairing();
         const requestId = started.body!.request_id as string;

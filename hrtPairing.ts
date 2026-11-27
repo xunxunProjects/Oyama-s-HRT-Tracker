@@ -11,6 +11,7 @@
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { readSmallJsonBody } from './requestInput';
+import { passwordCheckAllowed } from './src/server/rateLimit';
 import type { Env } from './worker';
 import { isMemorialAccount } from './src/server/userHelpers';
 import { b64decode, b64encode, constantTimeEqual, error, json, nowSeconds, randomHex, sha256Hex } from './workerUtil';
@@ -691,6 +692,9 @@ async function addTrustedIp(request: Request, env: Env, user: PairUser): Promise
     const password = typeof body.password === 'string' ? body.password : '';
     if (!ip || label.length === 0 || label.length > 32 || password.length === 0) {
         return error('INVALID_REQUEST', 'invalid trusted IP entry', 400);
+    }
+    if (!(await passwordCheckAllowed(env, user.userId))) {
+        return error('RATE_LIMITED', 'too many password attempts', 429);
     }
     const userRow = (await env.DB.prepare('SELECT password_hash FROM users WHERE id = ?')
         .bind(user.userId)
